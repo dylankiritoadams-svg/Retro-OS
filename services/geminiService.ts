@@ -16,8 +16,8 @@ const getAiInstance = () => {
 
 
 export const getWriterSuggestion = async (prompt: string): Promise<string> => {
-  const ai = getAiInstance();
   try {
+    const ai = getAiInstance();
     const response: GenerateContentResponse = await ai.models.generateContent({
       model: modelName,
       contents: prompt,
@@ -41,8 +41,8 @@ export const getWriterSuggestion = async (prompt: string): Promise<string> => {
 };
 
 export const generateModelTexture = async (prompt: string): Promise<string> => {
-    const ai = getAiInstance();
     try {
+        const ai = getAiInstance();
         const fullPrompt = `A seamless, tileable texture pattern suitable for a 3D model, based on the following description: ${prompt}`;
         const response = await ai.models.generateImages({
             model: 'imagen-3.0-generate-002',
@@ -68,8 +68,8 @@ export const generateModelTexture = async (prompt: string): Promise<string> => {
 };
 
 export const generateMacShopImage = async (prompt: string, width: number, height: number): Promise<string> => {
-    const ai = getAiInstance();
     try {
+        const ai = getAiInstance();
         const fullPrompt = `A retro, 8-bit or 16-bit pixel art style image. ${prompt}`;
         
         const supportedAspectRatios = {
@@ -111,8 +111,8 @@ export const generateMacShopImage = async (prompt: string, width: number, height
 };
 
 export const createChirperPersona = async (bio: string): Promise<{ name: string, handle: string }> => {
-    const ai = getAiInstance();
     try {
+        const ai = getAiInstance();
         const prompt = `Based on the following user persona description, create a fictional user name and a Twitter-style handle (e.g., @example). Persona: "${bio}"`;
         const response = await ai.models.generateContent({
             model: modelName,
@@ -147,8 +147,8 @@ export const createChirperPersona = async (bio: string): Promise<{ name: string,
 };
 
 export const generateChirperFeed = async (users: ChirperUser[]): Promise<{ chirps: { userId: string, content: string }[] }> => {
-    const ai = getAiInstance();
     try {
+        const ai = getAiInstance();
         const userDescriptions = users.map(u => `- User ID ${u.id} (handle: ${u.handle}, name: ${u.name}): ${u.bio}`).join('\n');
         const prompt = `You are a social media post generator. Based on the following list of user personas, generate a short, Twitter-like post (under 280 characters) for each user.
 

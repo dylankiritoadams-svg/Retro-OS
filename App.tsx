@@ -19,11 +19,41 @@ export const useApp = () => {
     return context;
 }
 
+const WINDOW_STATE_KEY = 'retro_os_window_state';
+
 const OS: React.FC = () => {
     const { theme, getActiveColorScheme, getActiveFont } = useTheme();
-    const [windows, setWindows] = useState<WindowInstance[]>([]);
-    const [activeWindowId, setActiveWindowId] = useState<string | null>(null);
-    const [nextZIndex, setNextZIndex] = useState(10);
+
+    const [windows, setWindows] = useState<WindowInstance[]>(() => {
+        try {
+            const state = localStorage.getItem(WINDOW_STATE_KEY);
+            return state ? JSON.parse(state).windows : [];
+        } catch { return []; }
+    });
+
+    const [activeWindowId, setActiveWindowId] = useState<string | null>(() => {
+        try {
+            const state = localStorage.getItem(WINDOW_STATE_KEY);
+            return state ? JSON.parse(state).activeWindowId : null;
+        } catch { return null; }
+    });
+
+    const [nextZIndex, setNextZIndex] = useState<number>(() => {
+        try {
+            const state = localStorage.getItem(WINDOW_STATE_KEY);
+            return state ? JSON.parse(state).nextZIndex : 10;
+        } catch { return 10; }
+    });
+
+    // Save state to localStorage
+    useEffect(() => {
+        try {
+            const stateToSave = { windows, activeWindowId, nextZIndex };
+            localStorage.setItem(WINDOW_STATE_KEY, JSON.stringify(stateToSave));
+        } catch (e) {
+            console.error("Error saving window state:", e);
+        }
+    }, [windows, activeWindowId, nextZIndex]);
     
     // Effect to apply theme colors and font to the root element
     useEffect(() => {
@@ -100,7 +130,7 @@ const OS: React.FC = () => {
     
     return (
         <AppContext.Provider value={{ openApp }}>
-            <div className={`h-screen w-screen overflow-hidden flex ${theme.uiMode === 'mac' ? 'flex-col' : 'flex-col-reverse'} bg-[var(--bg-color)]`}>
+            <div className={`h-screen w-screen overflow-hidden flex ${theme.uiMode === 'mac' ? 'flex-col' : 'flex-col-reverse'}`}>
                 <Dock
                     onAppClick={openApp}
                     activeApp={activeApp}

@@ -1,7 +1,8 @@
-import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
 import type { SavedCard, CardGroup, CardContextType } from './types';
 
 const UNCATEGORIZED_ID = 'uncategorized';
+const CARDS_STORAGE_KEY = 'retro_os_cards_state';
 
 const CardContext = createContext<CardContextType | undefined>(undefined);
 
@@ -18,10 +19,31 @@ interface CardProviderProps {
 }
 
 export const CardProvider: React.FC<CardProviderProps> = ({ children }) => {
-    const [cards, setCards] = useState<SavedCard[]>([]);
-    const [groups, setGroups] = useState<CardGroup[]>([
-        { id: UNCATEGORIZED_ID, name: 'Uncategorized', cardIds: [] }
-    ]);
+    const [cards, setCards] = useState<SavedCard[]>(() => {
+        try {
+            const state = localStorage.getItem(CARDS_STORAGE_KEY);
+            return state ? JSON.parse(state).cards : [];
+        } catch { return []; }
+    });
+
+    const [groups, setGroups] = useState<CardGroup[]>(() => {
+        try {
+            const state = localStorage.getItem(CARDS_STORAGE_KEY);
+            return state ? JSON.parse(state).groups : [{ id: UNCATEGORIZED_ID, name: 'Uncategorized', cardIds: [] }];
+        } catch {
+            return [{ id: UNCATEGORIZED_ID, name: 'Uncategorized', cardIds: [] }];
+        }
+    });
+
+    useEffect(() => {
+        try {
+            const stateToSave = { cards, groups };
+            localStorage.setItem(CARDS_STORAGE_KEY, JSON.stringify(stateToSave));
+        } catch (e) {
+            console.error("Error saving card state:", e);
+        }
+    }, [cards, groups]);
+
 
     const getCardById = useCallback((id: string) => {
         return cards.find(c => c.id === id);
