@@ -3,10 +3,6 @@ import { GoogleGenAI, Chat } from '@google/genai';
 import type { ChatSession, ChatMessage } from '../../types';
 import { useCards } from '../../CardContext';
 
-if (!process.env.API_KEY) {
-    throw new Error("API_KEY environment variable not set.");
-}
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const modelName = 'gemini-2.5-flash';
 
 interface AppProps {
@@ -46,6 +42,21 @@ export const AssistantIve: React.FC<AppProps> = ({ isActive, instanceId }) => {
 
     const handleNewChat = useCallback(() => {
         const newId = `session-${Date.now()}`;
+        
+        let ai: GoogleGenAI;
+        try {
+            if (typeof process === 'undefined' || !process.env || !process.env.API_KEY) {
+                throw new Error("API Key is not configured. Please set API_KEY in your environment variables.");
+            }
+            ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        } catch (e: any) {
+            console.error(e);
+            const errorMessage: ChatMessage = { role: 'model', content: `Error: ${e.message}` };
+            setSessions(prev => [{ id: newId, name: `Chat ${prev.length + 1}`, messages: [errorMessage] }, ...prev]);
+            setActiveSessionId(newId);
+            return;
+        }
+
         const newChatInstance = ai.chats.create({
             model: modelName,
             config: {
@@ -81,6 +92,9 @@ export const AssistantIve: React.FC<AppProps> = ({ isActive, instanceId }) => {
 
         try {
             const chat = chatInstances.current[activeSessionId];
+            if (!chat) {
+                throw new Error("Chat session not initialized. This might be due to a missing API key.");
+            }
             const result = await chat.sendMessage({ message: textToProcess });
             const modelMessage: ChatMessage = { role: 'model', content: result.text.trim() };
             
@@ -90,9 +104,9 @@ export const AssistantIve: React.FC<AppProps> = ({ isActive, instanceId }) => {
                 )
             );
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error sending message:", error);
-            const errorMessage: ChatMessage = { role: 'model', content: "I seem to be having trouble connecting. Please try again." };
+            const errorMessage: ChatMessage = { role: 'model', content: `I seem to be having trouble connecting. Error: ${error.message}` };
              setSessions(prevSessions =>
                 prevSessions.map(s =>
                     s.id === activeSessionId ? { ...s, messages: [...s.messages, errorMessage] } : s
