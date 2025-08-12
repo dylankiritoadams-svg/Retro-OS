@@ -83,6 +83,19 @@ export const SystemSettings: React.FC<AppProps> = ({ isActive, instanceId }) => 
         // Reset file input to allow importing the same file again
         event.target.value = ''; 
     };
+    
+    const handleReset = () => {
+        if (window.confirm(
+            "Are you sure you want to reset the entire system?\n\nThis action is irreversible and will delete all saved files, settings, and window positions."
+        )) {
+            localStorage.removeItem('retro_os_window_state');
+            localStorage.removeItem('retro_os_theme_settings');
+            localStorage.removeItem('retro_os_vfs');
+            localStorage.removeItem('retro_os_documents');
+            localStorage.removeItem('retro_os_cards_state');
+            window.location.reload();
+        }
+    };
 
     return (
         <div className="w-full h-full p-4 space-y-6 bg-gray-200 text-black overflow-y-auto">
@@ -146,7 +159,7 @@ export const SystemSettings: React.FC<AppProps> = ({ isActive, instanceId }) => 
             <div>
                 <h2 className="text-lg font-bold border-b-2 border-gray-400 pb-1 mb-2">System Data</h2>
                 <p className="text-sm mb-2">Save or load your entire OS state, including files and settings.</p>
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap gap-2">
                     <button 
                         onClick={handleExport}
                         className="px-3 py-1 bg-white border-2 border-black active:bg-gray-200"
@@ -158,6 +171,12 @@ export const SystemSettings: React.FC<AppProps> = ({ isActive, instanceId }) => 
                         className="px-3 py-1 bg-white border-2 border-black active:bg-gray-200"
                     >
                         Import State
+                    </button>
+                     <button
+                        onClick={handleReset}
+                        className="px-3 py-1 bg-red-100 border-2 border-red-500 text-red-700 active:bg-red-200"
+                    >
+                        Reset System
                     </button>
                     <input
                         type="file"

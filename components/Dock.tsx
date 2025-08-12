@@ -195,7 +195,7 @@ const Dock: React.FC<DockProps> = ({ onAppClick, activeApp, activeWindowId, wind
                                     <span>Utilities</span>
                                     <span className="text-xs font-mono">▶</span>
                                 </div>
-                                <div className="absolute left-full top-0 -mt-1 w-56 bg-[var(--win95-silver)] p-1 win95-border-outset hidden group-hover:block">
+                                <div className="absolute left-full bottom-0 w-56 bg-[var(--win95-silver)] p-1 win95-border-outset hidden group-hover:block">
                                     {utilityApps.map(app => (
                                         <button key={app.id} onClick={() => handleAppClick(app.id)} className="w-full text-left p-1 flex items-center gap-2 hover:bg-[var(--win95-navy)] hover:text-white">
                                            {React.cloneElement(app.icon, {className: "h-5 w-5"})}
@@ -209,7 +209,7 @@ const Dock: React.FC<DockProps> = ({ onAppClick, activeApp, activeWindowId, wind
                                     <span>Games</span>
                                     <span className="text-xs font-mono">▶</span>
                                 </div>
-                                <div className="absolute left-full top-0 w-56 bg-[var(--win95-silver)] p-1 win95-border-outset hidden group-hover:block">
+                                <div className="absolute left-full bottom-0 w-56 bg-[var(--win95-silver)] p-1 win95-border-outset hidden group-hover:block">
                                     {gameApps.map(app => (
                                          <button key={app.id} onClick={() => handleAppClick(app.id)} className="w-full text-left p-1 flex items-center gap-2 hover:bg-[var(--win95-navy)] hover:text-white">
                                            {React.cloneElement(app.icon, {className: "h-5 w-5"})}
@@ -250,65 +250,67 @@ const Dock: React.FC<DockProps> = ({ onAppClick, activeApp, activeWindowId, wind
     
     // Mac Mode
     return (
-        <header ref={menuBarRef} className="w-full bg-white border-b-2 border-black p-1 text-black flex items-center space-x-4 select-none text-sm">
-            <div className="relative inline-block">
-                <button
-                    onClick={handleLogoClick}
-                    onMouseEnter={() => activeMenu && setActiveMenu('apple')}
-                    className={`px-3 py-0.5 ${activeMenu === 'apple' ? 'bg-black text-white' : 'bg-white text-black'}`}
-                >
-                    <AppleIcon />
-                </button>
-                 {showSecretMenu && <SecretMenu onSwitch={switchSides} onClose={() => setShowSecretMenu(false)} uiMode="mac"/>}
-                {activeMenu === 'apple' && (
-                    <div className="absolute left-0 mt-1 w-48 bg-white border-2 border-black shadow-lg z-50">
-                        <ul>
-                            <li className="relative group">
-                                <div className="px-3 py-1 flex justify-between items-center hover:bg-black hover:text-white cursor-default">
-                                    <span>Utilities</span>
-                                    <span className="text-xs">▶</span>
-                                </div>
-                                <div className="absolute left-full top-0 -mt-0.5 w-48 bg-white border-2 border-black shadow-lg z-50 hidden group-hover:block">
-                                    <ul>
-                                        {utilityApps.map(app => <AppMenuItem key={app.id} app={app} />)}
-                                    </ul>
-                                </div>
-                            </li>
-                            <li className="relative group">
-                                <div className="px-3 py-1 flex justify-between items-center hover:bg-black hover:text-white cursor-default">
-                                    <span>Games</span>
-                                    <span className="text-xs">▶</span>
-                                </div>
-                                <div className="absolute left-full top-0 -mt-0.5 w-48 bg-white border-2 border-black shadow-lg z-50 hidden group-hover:block">
-                                    <ul>
-                                        {gameApps.map(app => <AppMenuItem key={app.id} app={app} />)}
-                                    </ul>
-                                </div>
-                            </li>
-                             <hr className="border-t border-gray-400 my-1"/>
-                             <AppMenuItem app={APPS.find(a => a.id === 'finder')!} />
-                             <AppMenuItem app={APPS.find(a => a.id === 'settings')!} />
-                        </ul>
-                    </div>
-                )}
-            </div>
-
-            {menusToRender.map(menu => (
-                <div key={menu.title} className="relative inline-block">
-                     <button
-                        onMouseDown={() => toggleMenu(menu.title)}
-                        onMouseEnter={() => activeMenu && setActiveMenu(menu.title)}
-                        className={`px-3 py-0.5 ${activeMenu === menu.title ? 'bg-black text-white' : 'bg-white text-black'}`}
+        <header ref={menuBarRef} className="w-full bg-white border-b-2 border-black p-1 text-black flex items-center select-none text-sm">
+            <div className="flex items-center space-x-4">
+                <div className="relative inline-block">
+                    <button
+                        onClick={handleLogoClick}
+                        onMouseEnter={() => activeMenu && setActiveMenu('apple')}
+                        className={`px-3 py-0.5 ${activeMenu === 'apple' ? 'bg-black text-white' : 'bg-white text-black'}`}
                     >
-                        {menu.title}
+                        <AppleIcon />
                     </button>
-                     {activeMenu === menu.title && menu.items.length > 0 && (
+                     {showSecretMenu && <SecretMenu onSwitch={switchSides} onClose={() => setShowSecretMenu(false)} uiMode="mac"/>}
+                    {activeMenu === 'apple' && (
                         <div className="absolute left-0 mt-1 w-48 bg-white border-2 border-black shadow-lg z-50">
-                            <GlobalMenu menu={menu} activeWindowId={activeWindowId} closeMenu={() => setActiveMenu(null)} />
+                            <ul>
+                                <li className="relative group">
+                                    <div className="px-3 py-1 flex justify-between items-center hover:bg-black hover:text-white cursor-default">
+                                        <span>Utilities</span>
+                                        <span className="text-xs">▶</span>
+                                    </div>
+                                    <div className="absolute left-full top-0 -mt-0.5 w-48 bg-white border-2 border-black shadow-lg z-50 hidden group-hover:block">
+                                        <ul>
+                                            {utilityApps.map(app => <AppMenuItem key={app.id} app={app} />)}
+                                        </ul>
+                                    </div>
+                                </li>
+                                <li className="relative group">
+                                    <div className="px-3 py-1 flex justify-between items-center hover:bg-black hover:text-white cursor-default">
+                                        <span>Games</span>
+                                        <span className="text-xs">▶</span>
+                                    </div>
+                                    <div className="absolute left-full top-0 -mt-0.5 w-48 bg-white border-2 border-black shadow-lg z-50 hidden group-hover:block">
+                                        <ul>
+                                            {gameApps.map(app => <AppMenuItem key={app.id} app={app} />)}
+                                        </ul>
+                                    </div>
+                                </li>
+                                 <hr className="border-t border-gray-400 my-1"/>
+                                 <AppMenuItem app={APPS.find(a => a.id === 'finder')!} />
+                                 <AppMenuItem app={APPS.find(a => a.id === 'settings')!} />
+                            </ul>
                         </div>
                     )}
                 </div>
-            ))}
+
+                {menusToRender.map(menu => (
+                    <div key={menu.title} className="relative inline-block">
+                         <button
+                            onMouseDown={() => toggleMenu(menu.title)}
+                            onMouseEnter={() => activeMenu && setActiveMenu(menu.title)}
+                            className={`px-3 py-0.5 ${activeMenu === menu.title ? 'bg-black text-white' : 'bg-white text-black'}`}
+                        >
+                            {menu.title}
+                        </button>
+                         {activeMenu === menu.title && menu.items.length > 0 && (
+                            <div className="absolute left-0 mt-1 w-48 bg-white border-2 border-black shadow-lg z-50">
+                                <GlobalMenu menu={menu} activeWindowId={activeWindowId} closeMenu={() => setActiveMenu(null)} />
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
 
             <div className="ml-auto">
                 <Clock uiMode="mac" />
