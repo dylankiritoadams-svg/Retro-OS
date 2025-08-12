@@ -7,6 +7,7 @@ import { APPS } from '../../constants';
 interface AppProps {
   isActive: boolean;
   instanceId: string;
+  pathToOpen?: string;
 }
 
 const FolderIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>;
@@ -35,10 +36,19 @@ const FileItem: React.FC<{ node: VFSNode, onOpen: (node: VFSNode) => void }> = (
 };
 
 
-export const Finder: React.FC<AppProps> = ({ isActive, instanceId }) => {
-    const { getNode, getChildren, getRoot } = useFileSystem();
+export const Finder: React.FC<AppProps> = ({ isActive, instanceId, pathToOpen }) => {
+    const { getNode, getChildren, findNodeByPath } = useFileSystem();
     const { openApp } = useApp();
     const [currentNodeId, setCurrentNodeId] = useState<string>('root');
+    
+    useEffect(() => {
+        if (pathToOpen) {
+            const node = findNodeByPath(pathToOpen);
+            if (node) {
+                setCurrentNodeId(node.id);
+            }
+        }
+    }, [pathToOpen, findNodeByPath]);
     
     const currentNode = useMemo(() => getNode(currentNodeId), [currentNodeId, getNode]);
     const currentChildren = useMemo(() => getChildren(currentNodeId), [currentNodeId, getChildren]);

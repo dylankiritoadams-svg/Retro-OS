@@ -48,12 +48,11 @@ const Clock: React.FC<{ uiMode: 'mac' | 'windows' }> = ({ uiMode }) => {
     }, []);
 
     if (uiMode === 'mac') {
-        const formattedTime = currentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         const formattedDate = currentTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+        const formattedTime = currentTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         return (
-            <div className="text-right px-3">
-                <div>{formattedDate}</div>
-                <div>{formattedTime}</div>
+            <div className="px-3">
+                {formattedDate} {formattedTime}
             </div>
         );
     }

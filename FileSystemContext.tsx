@@ -27,6 +27,20 @@ const generateInitialFileSystem = (): Record<string, VFSNode> => {
         'docs': docs,
     };
 
+    // Create folders on Desktop
+    const gamesFolder: VFSFolder = { id: 'desktop-games', name: 'Games', type: 'folder', parentId: 'desktop', childrenIds: [] };
+    const utilsFolder: VFSFolder = { id: 'desktop-utils', name: 'Utilities', type: 'folder', parentId: 'desktop', childrenIds: [] };
+    const creativeFolder: VFSFolder = { id: 'desktop-creative', name: 'Apps', type: 'folder', parentId: 'desktop', childrenIds: [] };
+
+    nodes[gamesFolder.id] = gamesFolder;
+    nodes[utilsFolder.id] = utilsFolder;
+    nodes[creativeFolder.id] = creativeFolder;
+    desktop.childrenIds.push(gamesFolder.id, creativeFolder.id, utilsFolder.id);
+
+    // Define categories
+    const gameAppIds = new Set(['brick-breaker', 'pong', 'tetris', 'pac-man', 'pixel-pegs', 'zurg-cabin', 'old-pc']);
+    const utilityAppIds = new Set(['calculator', 'clock', 'calendar', 'planner', 'browser', 'finder', 'settings']);
+
     APPS.forEach(app => {
         // App file in /Applications
         const appFile: VFSFile = {
@@ -41,18 +55,27 @@ const generateInitialFileSystem = (): Record<string, VFSNode> => {
         nodes[appFile.id] = appFile;
         apps.childrenIds.push(appFile.id);
 
-        // Shortcut on /Desktop
+        // Shortcut on Desktop inside a category folder
+        let parentFolder: VFSFolder;
+        if (gameAppIds.has(app.id)) {
+            parentFolder = gamesFolder;
+        } else if (utilityAppIds.has(app.id)) {
+            parentFolder = utilsFolder;
+        } else {
+            parentFolder = creativeFolder;
+        }
+
         const shortcutFile: VFSFile = {
             id: `vfs-shortcut-${app.id}`,
             name: app.name,
             type: 'file',
-            parentId: 'desktop',
+            parentId: parentFolder.id,
             fileType: 'app',
             appId: app.id,
             icon: app.icon,
         };
         nodes[shortcutFile.id] = shortcutFile;
-        desktop.childrenIds.push(shortcutFile.id);
+        parentFolder.childrenIds.push(shortcutFile.id);
     });
 
     return nodes;
@@ -89,7 +112,9 @@ export const FileSystemProvider: React.FC<{ children: ReactNode }> = ({ children
 
     const findNodeByPath = useCallback((path: string): VFSNode | undefined => {
         if (path === '/') return getRoot();
-        const parts = path.split('/').filter(p => p);
+        // Remove leading slash for splitting, but handle root case first.
+        const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+        const parts = cleanPath.split('/').filter(p => p);
         
         let currentNode: VFSNode | undefined = getRoot();
         for (const part of parts) {
