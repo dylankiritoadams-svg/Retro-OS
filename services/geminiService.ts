@@ -1,16 +1,22 @@
 import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
 import { ChirperUser } from '../types';
 
-if (!process.env.API_KEY) {
-  // In a real app, you might want to handle this more gracefully,
-  // but for this context, throwing an error is fine.
-  throw new Error("API_KEY environment variable not set.");
-}
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const modelName = 'gemini-2.5-flash';
 
+// Helper function to initialize AI instance safely and lazily.
+// This prevents the app from crashing on load if the API key isn't set.
+const getAiInstance = () => {
+    // Check for 'process' to avoid ReferenceError in browser environments without a build step.
+    if (typeof process === 'undefined' || !process.env || !process.env.API_KEY) {
+        throw new Error("API Key is not configured. Please set the API_KEY environment variable in your deployment settings and redeploy.");
+    }
+    // Return a new instance
+    return new GoogleGenAI({ apiKey: process.env.API_KEY });
+};
+
+
 export const getWriterSuggestion = async (prompt: string): Promise<string> => {
+  const ai = getAiInstance();
   try {
     const response: GenerateContentResponse = await ai.models.generateContent({
       model: modelName,
@@ -30,12 +36,12 @@ export const getWriterSuggestion = async (prompt: string): Promise<string> => {
     return text;
   } catch (error) {
     console.error("Error calling Gemini API:", error);
-    // You might want to re-throw a custom error or handle it as needed.
-    throw new Error("Failed to fetch suggestion from Gemini API.");
+    throw error; // Propagate original error
   }
 };
 
 export const generateModelTexture = async (prompt: string): Promise<string> => {
+    const ai = getAiInstance();
     try {
         const fullPrompt = `A seamless, tileable texture pattern suitable for a 3D model, based on the following description: ${prompt}`;
         const response = await ai.models.generateImages({
@@ -57,11 +63,12 @@ export const generateModelTexture = async (prompt: string): Promise<string> => {
         }
     } catch (error) {
         console.error("Error calling Gemini API for image generation:", error);
-        throw new Error("Failed to generate model texture from Gemini API.");
+        throw error;
     }
 };
 
 export const generateMacShopImage = async (prompt: string, width: number, height: number): Promise<string> => {
+    const ai = getAiInstance();
     try {
         const fullPrompt = `A retro, 8-bit or 16-bit pixel art style image. ${prompt}`;
         
@@ -99,11 +106,12 @@ export const generateMacShopImage = async (prompt: string, width: number, height
         }
     } catch (error) {
         console.error("Error calling Gemini API for image generation:", error);
-        throw new Error("Failed to generate image from Gemini API.");
+        throw error;
     }
 };
 
 export const createChirperPersona = async (bio: string): Promise<{ name: string, handle: string }> => {
+    const ai = getAiInstance();
     try {
         const prompt = `Based on the following user persona description, create a fictional user name and a Twitter-style handle (e.g., @example). Persona: "${bio}"`;
         const response = await ai.models.generateContent({
@@ -134,11 +142,12 @@ export const createChirperPersona = async (bio: string): Promise<{ name: string,
 
     } catch (error) {
         console.error("Error creating Chirper persona:", error);
-        throw new Error("Failed to create AI persona.");
+        throw error;
     }
 };
 
 export const generateChirperFeed = async (users: ChirperUser[]): Promise<{ chirps: { userId: string, content: string }[] }> => {
+    const ai = getAiInstance();
     try {
         const userDescriptions = users.map(u => `- User ID ${u.id} (handle: ${u.handle}, name: ${u.name}): ${u.bio}`).join('\n');
         const prompt = `You are a social media post generator. Based on the following list of user personas, generate a short, Twitter-like post (under 280 characters) for each user.
@@ -184,6 +193,6 @@ Generate one post per user ID. Make sure the content of the post fits the user's
         }
     } catch (error) {
         console.error("Error generating Chirper feed:", error);
-        throw new Error("Failed to generate AI feed.");
+        throw error;
     }
 };
