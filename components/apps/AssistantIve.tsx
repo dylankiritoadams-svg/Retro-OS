@@ -1,0 +1,176 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { GoogleGenAI, Chat } from '@google/genai';
+import type { ChatSession, ChatMessage } from '../../types';
+import { useCards } from '../../CardContext';
+
+if (!process.env.API_KEY) {
+    throw new Error("API_KEY environment variable not set.");
+}
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const modelName = 'gemini-2.5-flash';
+
+interface AppProps {
+  isActive: boolean;
+  instanceId: string;
+}
+
+export const AssistantIve: React.FC<AppProps> = ({ isActive, instanceId }) => {
+    const { addCard } = useCards();
+    const [sessions, setSessions] = useState<Omit<ChatSession, 'chatInstance'>[]>([]);
+    const chatInstances = useRef<Record<string, Chat>>({});
+    const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+    const [currentInput, setCurrentInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const chatEndRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const scrollToBottom = () => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    useEffect(scrollToBottom, [sessions, activeSessionId, isLoading]);
+    
+    useEffect(() => {
+        if (sessions.length === 0) {
+            handleNewChat();
+        } else if (!activeSessionId && sessions.length > 0) {
+            setActiveSessionId(sessions[0].id);
+        }
+    }, [sessions, activeSessionId]);
+    
+    useEffect(() => {
+       if (isActive) {
+           inputRef.current?.focus();
+       }
+    }, [activeSessionId, isLoading, isActive])
+
+    const handleNewChat = useCallback(() => {
+        const newId = `session-${Date.now()}`;
+        const newChatInstance = ai.chats.create({
+            model: modelName,
+            config: {
+                 systemInstruction: 'You are Ive, an AI assistant with the personality of a world-renowned, minimalist designer. Your responses should be thoughtful, concise, elegant, and focused on the core idea. You avoid fluff and speak with clarity and purpose.',
+            },
+        });
+
+        chatInstances.current[newId] = newChatInstance;
+
+        const newSession = {
+            id: newId,
+            name: `Chat ${sessions.length + 1}`,
+            messages: [],
+        };
+        setSessions(prev => [newSession, ...prev]);
+        setActiveSessionId(newId);
+    }, [sessions.length]);
+
+    const handleSubmit = async (e?: React.FormEvent) => {
+        e?.preventDefault();
+        if (!currentInput.trim() || isLoading || !activeSessionId) return;
+
+        const userMessage: ChatMessage = { role: 'user', content: currentInput.trim() };
+        
+        setSessions(prevSessions =>
+            prevSessions.map(s =>
+                s.id === activeSessionId ? { ...s, messages: [...s.messages, userMessage] } : s
+            )
+        );
+        const textToProcess = currentInput;
+        setCurrentInput('');
+        setIsLoading(true);
+
+        try {
+            const chat = chatInstances.current[activeSessionId];
+            const result = await chat.sendMessage({ message: textToProcess });
+            const modelMessage: ChatMessage = { role: 'model', content: result.text.trim() };
+            
+            setSessions(prevSessions =>
+                prevSessions.map(s =>
+                    s.id === activeSessionId ? { ...s, messages: [...s.messages, modelMessage] } : s
+                )
+            );
+
+        } catch (error) {
+            console.error("Error sending message:", error);
+            const errorMessage: ChatMessage = { role: 'model', content: "I seem to be having trouble connecting. Please try again." };
+             setSessions(prevSessions =>
+                prevSessions.map(s =>
+                    s.id === activeSessionId ? { ...s, messages: [...s.messages, errorMessage] } : s
+                )
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    const handleSaveCard = (content: string) => {
+        addCard(content);
+    };
+
+    const activeSession = sessions.find(s => s.id === activeSessionId);
+
+    return (
+        <div className="w-full h-full flex bg-white text-black">
+            {/* Sidebar for sessions */}
+            <div className="w-1/3 min-w-[150px] h-full border-r-2 border-black bg-gray-100 flex flex-col">
+                <div className="p-2 border-b-2 border-black">
+                    <button onClick={handleNewChat} className="w-full p-1 bg-white border-2 border-black text-black active:bg-gray-200">
+                        New Chat
+                    </button>
+                </div>
+                <ul className="flex-grow overflow-y-auto">
+                    {sessions.map(session => (
+                        <li key={session.id}>
+                            <button
+                                onClick={() => setActiveSessionId(session.id)}
+                                className={`w-full text-left p-2 truncate hover:bg-gray-200 ${activeSessionId === session.id ? 'bg-gray-300' : ''}`}
+                            >
+                                {session.name}
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+
+            {/* Main chat area */}
+            <div className="flex-grow flex flex-col">
+                <div className="flex-grow p-4 overflow-y-auto space-y-4">
+                    {activeSession?.messages.map((msg, index) => (
+                        <div key={index} className="relative group">
+                            <div className="whitespace-pre-wrap">
+                                <p className="font-bold">{msg.role === 'user' ? 'You:' : 'Ive:'}</p>
+                                <p>{msg.content}</p>
+                            </div>
+                            {msg.role === 'model' && (
+                                <button 
+                                    onClick={() => handleSaveCard(msg.content)}
+                                    className="absolute top-0 right-0 px-2 py-0.5 text-xs bg-white border-2 border-black rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 active:bg-gray-200"
+                                    aria-label="Save response as card"
+                                >
+                                    Save Card
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                    {isLoading && <p className="text-gray-500 italic">Ive is thinking...</p>}
+                    <div ref={chatEndRef} />
+                </div>
+                <form onSubmit={handleSubmit} className="p-2 border-t-2 border-black flex items-center space-x-2 bg-gray-100">
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={currentInput}
+                        onChange={(e) => setCurrentInput(e.target.value)}
+                        disabled={isLoading}
+                        className="flex-grow p-1 border-2 border-black bg-white text-black focus:outline-none rounded-sm"
+                        autoComplete="off"
+                        placeholder="Ask a question..."
+                    />
+                    <button type="submit" disabled={isLoading || !currentInput.trim()} className="px-3 py-1 bg-white border-2 border-black rounded-sm active:bg-gray-200 disabled:opacity-50">
+                        {isLoading ? 'Sending...' : 'Send'}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+};
