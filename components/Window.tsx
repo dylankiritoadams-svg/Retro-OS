@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { WindowInstance, AppDefinition, MenuDefinition } from '../types';
 import { useTheme } from '../SettingsContext';
@@ -87,145 +89,155 @@ const Window: React.FC<WindowProps> = ({ instance, app, onClose, onFocus, onPosi
         }
     }, [isActive, onFocus, instance.id]);
 
-    const handleDragMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    const handleInteractionStart = useCallback((e: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>, type: 'drag' | 'resize') => {
         if (!nodeRef.current) return;
+        if (type === 'resize') e.stopPropagation();
+
         handleFocus();
-        setIsDragging(true);
+
+        if (type === 'drag') setIsDragging(true);
+        if (type === 'resize') setIsResizing(true);
+
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
         const rect = nodeRef.current.getBoundingClientRect();
         dragOffset.current = {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
+            x: clientX - rect.left,
+            y: clientY - rect.top,
         };
-        e.preventDefault();
-    };
 
-    const handleMouseUp = useCallback(() => {
+        // Prevent default behavior like text selection or page scrolling
+        e.preventDefault();
+    }, [handleFocus]);
+
+    const handleInteractionMove = useCallback((e: MouseEvent | TouchEvent) => {
+        if (e.type === 'touchmove') {
+            e.preventDefault();
+        }
+
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+        if (isDragging) {
+            onPositionChange(instance.id, {
+                x: clientX - dragOffset.current.x,
+                y: clientY - dragOffset.current.y,
+            });
+        } else if (isResizing) {
+            if (!nodeRef.current) return;
+            const rect = nodeRef.current.getBoundingClientRect();
+            const newWidth = Math.max(MIN_WIDTH, clientX - rect.left);
+            const newHeight = Math.max(MIN_HEIGHT, clientY - rect.top);
+            onSizeChange(instance.id, { width: newWidth, height: newHeight });
+        }
+    }, [isDragging, isResizing, instance.id, onPositionChange, onSizeChange]);
+    
+    const handleInteractionEnd = useCallback(() => {
         setIsDragging(false);
         setIsResizing(false);
     }, []);
 
-    const handleDragMouseMove = useCallback((e: MouseEvent) => {
-        if (!isDragging || !nodeRef.current) return;
-        e.preventDefault();
-        onPositionChange(instance.id, {
-            x: e.clientX - dragOffset.current.x,
-            y: e.clientY - dragOffset.current.y,
-        });
-    }, [isDragging, instance.id, onPositionChange]);
-    
-    const handleResizeMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-        e.stopPropagation();
-        handleFocus();
-        setIsResizing(true);
-    };
-
-    const handleResizeMouseMove = useCallback((e: MouseEvent) => {
-        if (!isResizing || !nodeRef.current) return;
-        e.preventDefault();
-        const rect = nodeRef.current.getBoundingClientRect();
-        const newWidth = Math.max(MIN_WIDTH, e.clientX - rect.left + (uiMode === 'windows' ? 3 : 6));
-        const newHeight = Math.max(MIN_HEIGHT, e.clientY - rect.top + (uiMode === 'windows' ? 3 : 6));
-        onSizeChange(instance.id, { width: newWidth, height: newHeight });
-    }, [isResizing, instance.id, onSizeChange, uiMode]);
-
     useEffect(() => {
-        if (!isDragging && !isResizing) return;
-        const handleMove = isDragging ? handleDragMouseMove : handleResizeMouseMove;
-        window.addEventListener('mousemove', handleMove);
-        window.addEventListener('mouseup', handleMouseUp);
-        return () => {
-            window.removeEventListener('mousemove', handleMove);
-            window.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, [isDragging, isResizing, handleDragMouseMove, handleResizeMouseMove, handleMouseUp]);
-    
-    const AppContent = app.component;
+        if (isDragging || isResizing) {
+            document.addEventListener('mousemove', handleInteractionMove);
+            document.addEventListener('mouseup', handleInteractionEnd);
+            document.addEventListener('touchmove', handleInteractionMove, { passive: false });
+            document.addEventListener('touchend', handleInteractionEnd);
+        }
 
-    if (uiMode === 'windows') {
-        return (
-             <div
-                ref={nodeRef}
-                className="absolute win95-window win95-border-outset flex flex-col"
-                style={{
-                    left: `${instance.position.x}px`,
-                    top: `${instance.position.y}px`,
-                    width: `${instance.size.width}px`,
-                    height: `${instance.size.height}px`,
-                    zIndex: instance.zIndex,
-                }}
-                onMouseDown={handleFocus}
-            >
-                <div
-                    className={`win95-title-bar ${isActive ? '' : 'inactive'}`}
-                    onMouseDown={handleDragMouseDown}
-                >
-                    <div className="win95-title-bar-text">
-                        {React.cloneElement(app.icon, {className: "h-4 w-4 inline-block mr-2"})}
-                        {app.name}
-                    </div>
-                    <div className="win95-title-bar-controls">
-                        <button className="win95-border-outset" aria-label="Minimize">_</button>
-                        <button className="win95-border-outset" aria-label="Maximize">[]</button>
-                        <button onClick={() => onClose(instance.id)} className="win95-border-outset" aria-label={`Close ${app.name}`}>X</button>
-                    </div>
-                </div>
-                {app.menus && app.menus.length > 0 && <Win95Menu menus={app.menus} instanceId={instance.id} />}
-                <div className="win95-content win95-border-inset flex-grow relative overflow-auto min-h-0 min-w-0">
-                    <AppContent isActive={isActive} instanceId={instance.id} {...instance.props} />
-                </div>
-                 <div
-                    className="absolute bottom-0 right-0 w-4 h-4"
-                    style={{ cursor: 'se-resize' }}
-                    onMouseDown={handleResizeMouseDown}
-                    aria-label="Resize window"
-                 ></div>
-            </div>
-        );
-    }
-    
-    // Mac Mode
-    return (
+        return () => {
+            document.removeEventListener('mousemove', handleInteractionMove);
+            document.removeEventListener('mouseup', handleInteractionEnd);
+            document.removeEventListener('touchmove', handleInteractionMove);
+            document.removeEventListener('touchend', handleInteractionEnd);
+        };
+    }, [isDragging, isResizing, handleInteractionMove, handleInteractionEnd]);
+
+    const AppComponent = app.component;
+
+    const macWindow = (
         <div
             ref={nodeRef}
-            className="absolute bg-[var(--window-bg)] border-2 border-black p-0.5 flex flex-col window-shadow"
+            className="absolute bg-[var(--window-bg)] border-2 border-black rounded-lg window-shadow"
             style={{
-                left: `${instance.position.x}px`,
-                top: `${instance.position.y}px`,
-                width: `${instance.size.width}px`,
-                height: `${instance.size.height}px`,
+                left: instance.position.x,
+                top: instance.position.y,
+                width: instance.size.width,
+                height: instance.size.height,
                 zIndex: instance.zIndex,
             }}
             onMouseDown={handleFocus}
+            onTouchStart={handleFocus}
         >
-            <div
-                className={`p-1 flex justify-between items-center select-none cursor-move ${isActive ? 'active-title-bar' : ''}`}
-                onMouseDown={handleDragMouseDown}
+            <header
+                className={`flex items-center p-1 border-b-2 border-black ${isActive ? 'active-title-bar' : ''}`}
+                onMouseDown={(e) => handleInteractionStart(e, 'drag')}
+                onTouchStart={(e) => handleInteractionStart(e, 'drag')}
             >
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onClose(instance.id);
-                    }}
-                    className="bg-[var(--window-bg)] border-2 border-black w-5 h-5 font-bold flex items-center justify-center active:bg-gray-300"
-                    aria-label={`Close ${app.name}`}
-                >
-                </button>
-                <span className="font-bold pointer-events-none">{app.name}</span>
-                 <div className="w-5 h-5"></div>
-            </div>
-            <div className="flex-grow bg-[var(--window-bg)] border-t-2 border-black p-2 overflow-auto min-h-0 min-w-0 relative">
-                 <AppContent isActive={isActive} instanceId={instance.id} {...instance.props} />
-            </div>
+                <div className="flex space-x-1.5 pl-1">
+                    <button onClick={() => onClose(instance.id)} className="w-3.5 h-3.5 bg-red-500 rounded-full border border-black"></button>
+                    <button className="w-3.5 h-3.5 bg-yellow-500 rounded-full border border-black"></button>
+                    <button className="w-3.5 h-3.5 bg-green-500 rounded-full border border-black"></button>
+                </div>
+                <h2 className="flex-grow text-center text-sm font-bold truncate pr-16">{app.name}</h2>
+            </header>
+            <main className="w-full h-[calc(100%-29px)] overflow-hidden">
+                <AppComponent isActive={isActive} instanceId={instance.id} {...instance.props} />
+            </main>
             <div
-                className="absolute bottom-0 right-0 w-4 h-4"
-                style={{ cursor: 'se-resize' }}
-                onMouseDown={handleResizeMouseDown}
-                aria-label="Resize window"
-            >
-                <div className="w-full h-full bg-gray-200 border-l-2 border-t-2 border-black"></div>
-            </div>
+                className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize"
+                style={{
+                  backgroundImage: `repeating-linear-gradient(
+                    -45deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0,0,0,0.5) 2px,
+                    rgba(0,0,0,0.5) 4px
+                  )`
+                }}
+                onMouseDown={(e) => handleInteractionStart(e, 'resize')}
+                onTouchStart={(e) => handleInteractionStart(e, 'resize')}
+            ></div>
         </div>
     );
+
+    const windowsWindow = (
+         <div
+            ref={nodeRef}
+            className="absolute win95-window win95-border-outset"
+             style={{
+                left: instance.position.x,
+                top: instance.position.y,
+                width: instance.size.width,
+                height: instance.size.height,
+                zIndex: instance.zIndex,
+            }}
+            onMouseDown={handleFocus}
+            onTouchStart={handleFocus}
+        >
+            <div className={`win95-title-bar ${isActive ? '' : 'inactive'}`} onMouseDown={(e) => handleInteractionStart(e, 'drag')} onTouchStart={(e) => handleInteractionStart(e, 'drag')}>
+                <span className="win95-title-bar-text">{app.name}</span>
+                <div className="win95-title-bar-controls">
+                    <button className="win95-border-outset" disabled>_</button>
+                    <button className="win95-border-outset" disabled>❐</button>
+                    <button className="win95-border-outset" onClick={() => onClose(instance.id)}>X</button>
+                </div>
+            </div>
+            {app.menus && app.menus.length > 0 && <Win95Menu menus={app.menus} instanceId={instance.id} />}
+            <main className="win95-content win95-border-inset h-[calc(100%-23px-26px)] overflow-hidden">
+                 <AppComponent isActive={isActive} instanceId={instance.id} {...instance.props} />
+            </main>
+             <div
+                className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize"
+                style={{ background: 'var(--win95-silver)' }}
+                onMouseDown={(e) => handleInteractionStart(e, 'resize')}
+                onTouchStart={(e) => handleInteractionStart(e, 'resize')}
+            ></div>
+        </div>
+    );
+
+    return uiMode === 'mac' ? macWindow : windowsWindow;
 };
 
 export default Window;

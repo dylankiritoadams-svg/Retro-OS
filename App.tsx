@@ -1,4 +1,5 @@
-import React, { useState, useCallback, createContext, useContext, useMemo, useEffect } from 'react';
+
+import React, { useState, useCallback, createContext, useContext, useMemo, useEffect, useRef } from 'react';
 import { WindowInstance, AppDefinition } from './types';
 import { APPS } from './constants';
 import Window from './components/Window';
@@ -23,6 +24,7 @@ const WINDOW_STATE_KEY = 'retro_os_window_state';
 
 const OS: React.FC = () => {
     const { theme, getActiveColorScheme, getActiveFont } = useTheme();
+    const mainRef = useRef<HTMLElement>(null);
 
     const [windows, setWindows] = useState<WindowInstance[]>(() => {
         try {
@@ -76,12 +78,21 @@ const OS: React.FC = () => {
     const openApp = useCallback((appId: string, props: Record<string, any> = {}) => {
         const app = APPS.find(a => a.id === appId);
         if (!app) return;
+        
+        const mainEl = mainRef.current;
+        const viewportWidth = mainEl ? mainEl.clientWidth : window.innerWidth;
+        const viewportHeight = mainEl ? mainEl.clientHeight : window.innerHeight;
+        const scrollLeft = mainEl ? mainEl.scrollLeft : 0;
+        const scrollTop = mainEl ? mainEl.scrollTop : 0;
 
         const newWindow: WindowInstance = {
             id: `win-${Date.now()}`,
             appId: app.id,
             zIndex: nextZIndex,
-            position: { x: 100 + windows.length * 20, y: 100 + windows.length * 20 },
+            position: { 
+                x: scrollLeft + (viewportWidth / 2) - (app.defaultSize.width / 2) + ((windows.length % 10) * 20),
+                y: scrollTop + (viewportHeight / 2) - (app.defaultSize.height / 2) + ((windows.length % 10) * 20),
+            },
             size: app.defaultSize,
             props: props || {},
         };
@@ -130,7 +141,7 @@ const OS: React.FC = () => {
     
     return (
         <AppContext.Provider value={{ openApp }}>
-            <div className={`h-screen w-screen overflow-hidden flex ${theme.uiMode === 'mac' ? 'flex-col' : 'flex-col-reverse'}`}>
+            <div className={`h-screen w-screen flex ${theme.uiMode === 'mac' ? 'flex-col' : 'flex-col-reverse'}`}>
                 <Dock
                     onAppClick={openApp}
                     activeApp={activeApp}
@@ -138,24 +149,26 @@ const OS: React.FC = () => {
                     windows={windows}
                     onWindowFocus={focusWindow}
                 />
-                <main className="flex-grow relative">
-                    <Desktop />
-                    {windows.map(instance => {
-                        const app = APPS.find(a => a.id === instance.appId);
-                        if (!app) return null;
-                        return (
-                            <Window
-                                key={instance.id}
-                                instance={instance}
-                                app={app}
-                                onClose={closeWindow}
-                                onFocus={focusWindow}
-                                onPositionChange={updateWindowPosition}
-                                onSizeChange={updateWindowSize}
-                                isActive={instance.id === activeWindowId}
-                            />
-                        );
-                    })}
+                <main ref={mainRef} className="flex-grow relative overflow-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+                    <div className="relative" style={{ width: '4000px', height: '3000px' }}>
+                        <Desktop />
+                        {windows.map(instance => {
+                            const app = APPS.find(a => a.id === instance.appId);
+                            if (!app) return null;
+                            return (
+                                <Window
+                                    key={instance.id}
+                                    instance={instance}
+                                    app={app}
+                                    onClose={closeWindow}
+                                    onFocus={focusWindow}
+                                    onPositionChange={updateWindowPosition}
+                                    onSizeChange={updateWindowSize}
+                                    isActive={instance.id === activeWindowId}
+                                />
+                            );
+                        })}
+                    </div>
                 </main>
             </div>
         </AppContext.Provider>
