@@ -1,33 +1,56 @@
 import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
 import type { ChirperUser, SelectionRect, CampaignNpc, CampaignLocation, CampaignFaction, CampaignItem, CampaignStoryArc, CampaignSession, Task, SubTask } from '../types';
 
-if (!process.env.API_KEY) {
-  // In a real app, you might want to show this error in the UI instead of throwing.
-  console.error("API_KEY environment variable is not set");
-}
+let ai: GoogleGenAI | null = null;
+let initError: string | null = null;
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// This function lazily initializes the AI instance and handles errors gracefully.
+const getAiInstance = (): GoogleGenAI => {
+    if (initError) {
+        throw new Error(initError);
+    }
+    if (ai) {
+        return ai;
+    }
+
+    try {
+        const apiKey = process.env.API_KEY;
+        if (!apiKey) {
+            // This is a common deployment issue, so provide a clear error message.
+            throw new Error("API_KEY environment variable not set. Please configure it in your deployment settings.");
+        }
+        ai = new GoogleGenAI({ apiKey });
+        return ai;
+    } catch (e: any) {
+        console.error("Failed to initialize GoogleGenAI:", e);
+        initError = e.message || "An unknown error occurred during AI service initialization.";
+        throw new Error(initError);
+    }
+};
+
+
 const model = 'gemini-2.5-flash';
 
 // Simple text generation
 const generateText = async (prompt: string): Promise<string> => {
     try {
-        const response = await ai.models.generateContent({
+        const aiInstance = getAiInstance();
+        const response = await aiInstance.models.generateContent({
             model,
             contents: prompt,
         });
         return response.text;
-    } catch (e) {
+    } catch (e: any) {
         console.error("Gemini API Error (generateText):", e);
-        throw new Error("Failed to generate text from Gemini API.");
+        throw new Error(`Failed to generate text from Gemini API: ${e.message}`);
     }
 };
 
 // --- gTerminal & DeepSearch Apps ---
-// FIX: Add getGroundedResponse to use Google Search grounding for web queries.
 export const getGroundedResponse = async (prompt: string): Promise<GenerateContentResponse> => {
     try {
-        const response = await ai.models.generateContent({
+        const aiInstance = getAiInstance();
+        const response = await aiInstance.models.generateContent({
             model,
             contents: prompt,
             config: {
@@ -35,9 +58,9 @@ export const getGroundedResponse = async (prompt: string): Promise<GenerateConte
             },
         });
         return response;
-    } catch (e) {
+    } catch (e: any) {
         console.error("Gemini API Error (getGroundedResponse):", e);
-        throw new Error("Failed to get grounded response from Gemini API.");
+        throw new Error(`Failed to get grounded response from Gemini API: ${e.message}`);
     }
 };
 
@@ -55,67 +78,77 @@ Personas:
 ${personaDescriptions}
 
 Generate a feed. Only a few of the users should post.`;
-
-    const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                    chirps: {
-                        type: Type.ARRAY,
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                userId: {
-                                    type: Type.STRING,
-                                    description: `The handle of the user who is chirping (e.g., "${users.map(u => u.handle).join('", "')}")`,
-                                },
-                                content: {
-                                    type: Type.STRING,
-                                    description: "The content of the chirp, under 280 characters.",
+    try {
+        const aiInstance = getAiInstance();
+        const response = await aiInstance.models.generateContent({
+            model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        chirps: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    userId: {
+                                        type: Type.STRING,
+                                        description: `The handle of the user who is chirping (e.g., "${users.map(u => u.handle).join('", "')}")`,
+                                    },
+                                    content: {
+                                        type: Type.STRING,
+                                        description: "The content of the chirp, under 280 characters.",
+                                    },
                                 },
                             },
                         },
                     },
                 },
             },
-        },
-    });
+        });
 
-    const jsonText = response.text.trim();
-    const parsed = JSON.parse(jsonText);
-    
-    // Map handles back to user IDs
-    const handleToIdMap = new Map(users.map(u => [u.handle, u.id]));
-    parsed.chirps.forEach((chirp: any) => {
-        chirp.userId = handleToIdMap.get(chirp.userId) || users[0]?.id;
-    });
+        const jsonText = response.text.trim();
+        const parsed = JSON.parse(jsonText);
+        
+        const handleToIdMap = new Map(users.map(u => [u.handle, u.id]));
+        parsed.chirps.forEach((chirp: any) => {
+            chirp.userId = handleToIdMap.get(chirp.userId) || users[0]?.id;
+        });
 
-    return parsed;
+        return parsed;
+    } catch (e: any) {
+        console.error("Gemini API Error (generateChirperFeed):", e);
+        throw new Error(`Failed to generate Chirper feed: ${e.message}`);
+    }
 };
 
 export const createChirperPersona = async (bio: string): Promise<{ name: string, handle: string }> => {
     const prompt = `Based on the following user biography, generate a creative name and a short, catchy handle (starting with @).
 
 Bio: "${bio}"`;
-    const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                    name: { type: Type.STRING },
-                    handle: { type: Type.STRING },
+    try {
+        const aiInstance = getAiInstance();
+        const response = await aiInstance.models.generateContent({
+            model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        name: { type: Type.STRING },
+                        handle: { type: Type.STRING },
+                    },
                 },
             },
-        },
-    });
-    return JSON.parse(response.text.trim());
+        });
+        return JSON.parse(response.text.trim());
+    } catch (e: any) {
+        console.error("Gemini API Error (createChirperPersona):", e);
+        throw new Error(`Failed to create Chirper persona: ${e.message}`);
+    }
 };
 
 // --- Tasks App ---
@@ -127,41 +160,46 @@ export const generateTasksFromText = async (text: string, currentDate: string): 
 
 Text: "${text}"`;
 
-    const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                    tasks: {
-                        type: Type.ARRAY,
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                title: { type: Type.STRING },
-                                subTasks: {
-                                    type: Type.ARRAY,
-                                    items: { type: Type.STRING },
+    try {
+        const aiInstance = getAiInstance();
+        const response = await aiInstance.models.generateContent({
+            model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        tasks: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    title: { type: Type.STRING },
+                                    subTasks: {
+                                        type: Type.ARRAY,
+                                        items: { type: Type.STRING },
+                                    },
+                                    startTime: { 
+                                        type: Type.STRING,
+                                        description: "The start time as a full ISO 8601 string (e.g., '2024-08-05T14:00:00.000Z'). Omit if not specified.",
+                                    },
+                                    duration: {
+                                        type: Type.INTEGER,
+                                        description: "The duration of the task in minutes. Omit if not specified.",
+                                    }
                                 },
-                                startTime: { 
-                                    type: Type.STRING,
-                                    description: "The start time as a full ISO 8601 string (e.g., '2024-08-05T14:00:00.000Z'). Omit if not specified.",
-                                },
-                                duration: {
-                                    type: Type.INTEGER,
-                                    description: "The duration of the task in minutes. Omit if not specified.",
-                                }
                             },
                         },
                     },
                 },
             },
-        },
-    });
-
-    return JSON.parse(response.text.trim());
+        });
+        return JSON.parse(response.text.trim());
+    } catch (e: any) {
+        console.error("Gemini API Error (generateTasksFromText):", e);
+        throw new Error(`Failed to generate tasks from text: ${e.message}`);
+    }
 };
 
 
@@ -176,30 +214,42 @@ const getAspectRatio = (width: number, height: number): "1:1" | "3:4" | "4:3" | 
 }
 
 export const generateMacShopImage = async (prompt: string, width: number, height: number): Promise<string> => {
-    const response = await ai.models.generateImages({
-        model: 'imagen-4.0-generate-001',
-        prompt: prompt,
-        config: {
-            numberOfImages: 1,
-            outputMimeType: 'image/png',
-            aspectRatio: getAspectRatio(width, height),
-        },
-    });
-    const base64ImageBytes = response.generatedImages[0].image.imageBytes;
-    return `data:image/png;base64,${base64ImageBytes}`;
+    try {
+        const aiInstance = getAiInstance();
+        const response = await aiInstance.models.generateImages({
+            model: 'imagen-4.0-generate-001',
+            prompt: prompt,
+            config: {
+                numberOfImages: 1,
+                outputMimeType: 'image/png',
+                aspectRatio: getAspectRatio(width, height),
+            },
+        });
+        const base64ImageBytes = response.generatedImages[0].image.imageBytes;
+        return `data:image/png;base64,${base64ImageBytes}`;
+    } catch (e: any) {
+        console.error("Gemini API Error (generateMacShopImage):", e);
+        throw new Error(`Failed to generate image: ${e.message}`);
+    }
 };
 
 // --- Campaign Weaver ---
 const generateJsonForEntityType = async <T,>(prompt: string, schema: any): Promise<T> => {
-    const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: schema
-        },
-    });
-    return JSON.parse(response.text.trim());
+    try {
+        const aiInstance = getAiInstance();
+        const response = await aiInstance.models.generateContent({
+            model,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: schema
+            },
+        });
+        return JSON.parse(response.text.trim());
+    } catch (e: any) {
+        console.error("Gemini API Error (generateJsonForEntityType):", e);
+        throw new Error(`Failed to generate entity: ${e.message}`);
+    }
 };
 
 export const generateNpc = (prompt: string): Promise<Partial<CampaignNpc>> => generateJsonForEntityType(
