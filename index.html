@@ -1,0 +1,243 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Retro OS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Pixelify+Sans&family=Cutive+Mono&family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        /* Default theme is now Classic Mac */
+        --desktop-bg: #ffffff;
+        --desktop-pattern: #000000;
+        --text-color: #000000;
+        --window-bg: #ffffff;
+        --header-bg: #ffffff;
+        --button-bg: #ffffff;
+        --button-text: #000000;
+        --button-active-bg: #000000;
+        --button-active-text: #FFFFFF;
+        --main-font: 'Pixelify Sans', sans-serif;
+      }
+      body {
+        font-family: var(--main-font);
+        font-size: 16px;
+        background-color: var(--desktop-bg);
+        color: var(--text-color);
+        image-rendering: pixelated;
+        font-smooth: never;
+        -webkit-font-smoothing: none;
+      }
+
+      /* --- Classic Mac UI Styles --- */
+      .classic-window {
+        background-color: var(--window-bg);
+        border: 1px solid var(--text-color);
+        box-shadow: 2px 2px 0px var(--text-color);
+      }
+      .classic-title-bar {
+        padding: 3px;
+        height: 22px;
+        border-bottom: 1px solid var(--text-color);
+        display: flex;
+        align-items: center;
+        background-color: var(--window-bg);
+        user-select: none;
+      }
+      .classic-title-bar-active {
+        background-image: repeating-linear-gradient(to bottom, transparent, transparent 1px, #000 1px, #000 2px);
+      }
+      .classic-close-box {
+        width: 14px;
+        height: 14px;
+        border: 1px solid var(--text-color);
+        margin-left: 4px;
+        margin-right: 8px;
+        background-color: var(--window-bg);
+        cursor: pointer;
+      }
+       .classic-close-box:active {
+        background-color: var(--text-color);
+      }
+      .classic-split-button {
+        width: 14px;
+        height: 14px;
+        border: 1px solid var(--text-color);
+        background-color: var(--window-bg);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        line-height: 1;
+      }
+      .classic-split-button:active {
+        background-color: var(--text-color);
+        color: var(--window-bg);
+      }
+      .classic-resize-handle {
+         position: absolute;
+         bottom: 0;
+         right: 0;
+         width: 16px;
+         height: 16px;
+         cursor: nwse-resize;
+      }
+      .classic-resize-handle::before,
+      .classic-resize-handle::after {
+        content: '';
+        position: absolute;
+        border: 1px solid var(--text-color);
+        background-color: var(--window-bg);
+      }
+      .classic-resize-handle::before {
+        width: 10px;
+        height: 10px;
+        bottom: 0;
+        right: 0;
+      }
+      .classic-resize-handle::after {
+        width: 10px;
+        height: 10px;
+        bottom: 3px;
+        right: 3px;
+        z-index: 1;
+      }
+      .classic-menu-bar {
+         background-color: var(--header-bg);
+         height: 24px;
+         border-bottom: 1px solid var(--text-color);
+         display: flex;
+         align-items: center;
+         flex-shrink: 0;
+         position: relative;
+         z-index: 50;
+      }
+      .classic-menu-item, .classic-apple-button {
+        height: 100%;
+        padding: 0 10px;
+        display: flex;
+        align-items: center;
+        background-color: transparent;
+        border: none;
+        outline: none;
+        user-select: none;
+      }
+      .classic-menu-item.active, .classic-menu-item:hover:not(:disabled),
+      .classic-apple-button.active, .classic-apple-button:hover {
+        background-color: var(--text-color);
+        color: var(--window-bg);
+      }
+      .classic-dropdown-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background-color: var(--window-bg);
+        border: 1px solid var(--text-color);
+        box-shadow: 1px 1px 0px var(--text-color);
+        min-width: 150px;
+        z-index: 51;
+        padding: 2px 0;
+      }
+       .classic-dropdown-menu button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 2px 12px;
+      }
+      .classic-dropdown-menu button:hover:not(:disabled) {
+        background-color: var(--text-color);
+        color: var(--window-bg);
+      }
+      .classic-dropdown-menu button:disabled {
+        color: #999;
+      }
+       .classic-dropdown-menu hr {
+        border: none;
+        border-top: 1px dotted var(--text-color);
+        margin: 4px 1px;
+      }
+      .classic-submenu {
+        left: 100%;
+        top: -3px; /* Align with parent menu item */
+        margin-left: -1px; /* Overlap border */
+      }
+
+
+      /* Wallpapers */
+      .wallpaper-none { background-image: none; background-color: var(--desktop-bg); }
+      .wallpaper-grid { background-image: linear-gradient(rgba(0,0,0,0.07) 1px, transparent 1px), linear-gradient(to right, rgba(0,0,0,0.07) 1px, transparent 1px); background-size: 25px 25px; background-color: var(--bg-color); }
+      .wallpaper-dots { background-image: radial-gradient(rgba(0,0,0,0.1) 1px, transparent 1px); background-size: 20px 20px; background-color: var(--bg-color); }
+
+      /* Notebook Page Styles */
+      .notebook-textarea-dots { background-image: radial-gradient(#d1d5db 1px, transparent 1px); background-size: 24px 24px; background-attachment: local; line-height: 24px !important; }
+      .notebook-textarea-lines { background-image: repeating-linear-gradient(to bottom, transparent 23px, #e0e0e0 24px); background-size: 100% 24px; background-attachment: local; line-height: 24px !important; }
+
+
+      /* --- Windows 95 UI Mode --- */
+      body[data-uimode="windows"] {
+        --bg-color: #008080;
+        --text-color: #000000;
+        --win95-silver: #c0c0c0;
+        --win95-navy: #000080;
+        --win95-white: #ffffff;
+        --win95-black: #000000;
+        --win95-dark-gray: #808080;
+        font-family: 'VT323', monospace;
+        font-size: 18px;
+        background-image: none; /* Override Mac background */
+      }
+      .win95-border-outset { border-style: solid; border-width: 2px; border-color: var(--win95-white) var(--win95-black) var(--win95-black) var(--win95-white); box-shadow: 1px 1px 0 1px var(--win95-dark-gray); }
+      .win95-border-inset { border-style: solid; border-width: 2px; border-color: var(--win95-dark-gray) var(--win95-white) var(--win95-white) var(--win95-dark-gray); }
+      .taskbar { background-color: var(--win95-silver); border-top: 2px solid var(--win95-white); padding: 2px; display: flex; align-items: center; gap: 4px; }
+      .taskbar-start-btn { background-color: var(--win95-silver); font-weight: bold; padding: 2px 6px; display: flex; align-items: center; gap: 4px; }
+      .taskbar-start-btn:active { border-style: solid; border-width: 2px; border-color: var(--win95-black) var(--win95-white) var(--win95-white) var(--win95-black); }
+      .taskbar-window-btn { background-color: var(--win95-silver); padding: 2px 6px; flex-grow: 1; max-width: 150px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
+      .taskbar-window-btn.active { background-color: #a0a0a0; border-style: solid; border-width: 2px; border-color: var(--win95-dark-gray) var(--win95-white) var(--win95-white) var(--win95-dark-gray); }
+      .taskbar-clock { background-color: var(--win95-silver); padding: 2px 6px; margin-left: auto; }
+      .win95-window { background-color: var(--win95-silver); padding: 3px; }
+      .win95-title-bar { background-color: var(--win95-navy); color: var(--win95-white); padding: 2px 4px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+      .win95-title-bar.inactive { background-color: var(--win95-dark-gray); }
+      .win95-title-bar-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .win95-title-bar-controls { display: flex; gap: 2px; }
+      .win95-title-bar-controls button { width: 18px; height: 18px; background-color: var(--win95-silver); font-family: monospace; font-weight: bold; font-size: 12px; line-height: 1; display: flex; align-items: center; justify-content: center; }
+      .win95-title-bar-controls button:active { border-color: var(--win95-black) var(--win95-white) var(--win95-white) var(--win95-black); }
+      .win95-content { background-color: var(--win95-white); padding: 2px; }
+      .win95-menu-bar { background-color: var(--win95-silver); display: flex; padding: 2px; position: relative; }
+      .win95-menu-item { padding: 0 6px; }
+      .win95-menu-item:hover { background-color: var(--win95-navy); color: var(--win95-white); }
+      .win95-menu-item.active { background-color: var(--win95-navy); color: var(--win95-white); }
+      .win95-dropdown-menu { position: absolute; top: 100%; left: 0; background-color: var(--win95-silver); min-width: 150px; z-index: 10; padding: 2px; }
+      .win95-dropdown-menu button { display: block; width: 100%; text-align: left; padding: 2px 8px; }
+      .win95-dropdown-menu button:hover:not(:disabled) { background-color: var(--win95-navy); color: var(--win95-white); }
+      .win95-dropdown-menu button:disabled { color: var(--win95-dark-gray); }
+      .win95-dropdown-menu hr { border-top: 1px solid var(--win95-dark-gray); border-bottom: 1px solid var(--win95-white); margin: 2px 0; }
+      .win95-separator { border-top: 1px solid var(--win95-dark-gray); border-bottom: 1px solid var(--win95-white); margin: 2px 0; }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.1.1",
+    "react/": "https://esm.sh/react@^19.1.1/",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.13.0",
+    "three": "https://esm.sh/three@^0.167.0",
+    "three/addons/": "https://esm.sh/three@^0.167.0/examples/jsm/",
+    "three/": "https://esm.sh/three@^0.167.0/",
+    "date-fns": "https://aistudiocdn.com/date-fns@^4.1.0",
+    "epubjs": "https://esm.sh/epubjs@^0.3.93"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
