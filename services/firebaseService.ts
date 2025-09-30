@@ -76,10 +76,11 @@ export const listenToMessages = (callback: (messages: RetroBoardMessage[]) => vo
         callback(messages);
     }, (error) => {
         console.error("Error listening to messages:", error);
+        const errorMessage = `Error: Lost connection to the message board. (${error.code || error.message})`;
         callback([{
             id: 'error-2',
             username: 'System',
-            content: 'Error: Lost connection to the message board.',
+            content: errorMessage,
             timestamp: new Date(),
         }]);
     });
