@@ -22,8 +22,8 @@ export const RetroBoard: React.FC = () => {
         setIsLoading(true);
         const unsubscribe = listenToMessages((newMessages) => {
             setMessages(newMessages);
-            if (isLoading) setIsLoading(false);
-            // Check for system error messages from the service
+            setIsLoading(false);
+            
             const errorMsg = newMessages.find(m => m.id.startsWith('error-'));
             if (errorMsg) {
                 setError(errorMsg.content);
@@ -38,7 +38,7 @@ export const RetroBoard: React.FC = () => {
                 unsubscribe();
             }
         };
-    }, [isLoading]);
+    }, []);
 
     const handleSetUsername = () => {
         const trimmedUsername = tempUsername.trim();

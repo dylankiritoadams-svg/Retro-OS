@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI, Chat } from '@google/genai';
+import { Chat } from '@google/genai';
+import { startTextAdventureChat } from '../../services/geminiService';
 import type { ChatMessage } from '../../types';
 
 interface AppProps {
@@ -26,12 +27,8 @@ export const TextAdventure: React.FC<AppProps> = ({ isActive, instanceId }) => {
     }, [isActive, isLoading]);
 
     useEffect(() => {
-        let ai: GoogleGenAI;
         try {
-            if (typeof process === 'undefined' || !process.env || !process.env.API_KEY) {
-                throw new Error("API Key is not configured. Please set API_KEY in your environment variables.");
-            }
-            ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            geminiChat.current = startTextAdventureChat();
         } catch (e: any) {
             console.error(e);
             const errorMessage: ChatMessage = { role: 'model', content: `Error: ${e.message}\nThe system cannot boot.` };
@@ -40,13 +37,6 @@ export const TextAdventure: React.FC<AppProps> = ({ isActive, instanceId }) => {
             return;
         }
         
-        geminiChat.current = ai.chats.create({
-            model: 'gemini-2.5-flash',
-            config: {
-                 systemInstruction: "You are the game master for a retro text-based adventure game. The player is in a strange, isolated cabin and has just turned on an old computer. Be descriptive, mysterious, and guide the player through a short, compelling narrative based on their input. Start with the first message describing what appears on the computer screen.",
-            },
-        });
-
         setIsLoading(true);
         geminiChat.current.sendMessage({ message: "Start the game." }).then(result => {
             const startMessage: ChatMessage = { role: 'model', content: result.text.trim() };

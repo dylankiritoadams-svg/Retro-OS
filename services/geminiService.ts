@@ -1,4 +1,4 @@
-import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse, Type, Chat } from "@google/genai";
 import type { ChirperUser, SelectionRect, CampaignNpc, CampaignLocation, CampaignFaction, CampaignItem, CampaignStoryArc, CampaignSession, Task, SubTask } from '../types';
 
 let ai: GoogleGenAI | null = null;
@@ -50,6 +50,18 @@ const generateText = async (prompt: string): Promise<string> => {
 export const getWriterSuggestion = (prompt: string): Promise<string> => {
     return generateText(prompt);
 };
+
+// --- Text Adventure App ---
+export const startTextAdventureChat = (): Chat => {
+    const aiInstance = getAiInstance();
+    return aiInstance.chats.create({
+        model: 'gemini-2.5-flash',
+        config: {
+             systemInstruction: "You are the game master for a retro text-based adventure game. The player is in a strange, isolated cabin and has just turned on an old computer. Be descriptive, mysterious, and guide the player through a short, compelling narrative based on their input. Start with the first message describing what appears on the computer screen.",
+        },
+    });
+};
+
 
 // --- Chirper App ---
 export const generateChirperFeed = async (users: ChirperUser[]): Promise<{ chirps: { userId: string, content: string }[] }> => {
