@@ -16,34 +16,31 @@ let db: ReturnType<typeof getFirestore> | null = null;
 let initError: Error | null = null;
 
 try {
-    if (typeof process === 'undefined' || !process.env) {
-        throw new Error("Execution environment does not provide `process.env`. API keys cannot be accessed.");
-    }
+    const firebaseConfig = {
+        // @FIX: Use process.env to access environment variables.
+        apiKey: process.env.VITE_FIREBASE_API_KEY,
+        authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
+        projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+        storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+        appId: process.env.VITE_FIREBASE_APP_ID,
+    };
 
-    const requiredVars: (keyof NodeJS.ProcessEnv)[] = [
-        'FIREBASE_API_KEY',
-        'FIREBASE_AUTH_DOMAIN',
-        'FIREBASE_PROJECT_ID',
-        'FIREBASE_STORAGE_BUCKET',
-        'FIREBASE_MESSAGING_SENDER_ID',
-        'FIREBASE_APP_ID',
+    const requiredKeys: (keyof typeof firebaseConfig)[] = [
+        'apiKey',
+        'authDomain',
+        'projectId',
+        'storageBucket',
+        'messagingSenderId',
+        'appId',
     ];
     
-    const missingVars = requiredVars.filter(v => !process.env[v]);
+    const missingKeys = requiredKeys.filter(key => !firebaseConfig[key]);
 
-    if (missingVars.length > 0) {
-        throw new Error(`Firebase configuration is missing. Please set the following environment variables in your Vercel project settings: ${missingVars.join(', ')}`);
+    if (missingKeys.length > 0) {
+        throw new Error(`Firebase configuration is missing. Please set the following VITE_* environment variables in your Vercel project settings: ${missingKeys.join(', ')}`);
     }
 
-    const firebaseConfig = {
-        apiKey: process.env.FIREBASE_API_KEY,
-        authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-        messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-        appId: process.env.FIREBASE_APP_ID,
-    };
-    
     const app = initializeApp(firebaseConfig);
     db = getFirestore(app);
 } catch (error: any) {

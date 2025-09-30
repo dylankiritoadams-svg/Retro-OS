@@ -210,6 +210,73 @@ const MixTapeIcon: React.FC<IconProps> = ({ className = "h-10 w-10" }) => (
     </svg>
 );
 
+const CloudMixerIcon: React.FC<IconProps> = ({ className = "h-10 w-10" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 32 32" shapeRendering="crispEdges" fill="currentColor">
+        <path d="M16 5 A 8 8 0 0 1 16 21 A 8 8 0 0 1 16 5 M 10 10 A 5 5 0 0 1 10 20 M 22 10 A 5 5 0 0 1 22 20" fill="#add8e6" />
+    </svg>
+);
+const ZurgCabinIcon: React.FC<IconProps> = ({ className = "h-10 w-10" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 32 32" shapeRendering="crispEdges" fill="currentColor">
+        <path d="M4 14 L 16 4 L 28 14 L 28 28 L 4 28 Z" stroke="black" strokeWidth="1" fill="#8B4513" />
+        <rect x="13" y="18" width="6" height="10" fill="#4a2a0a" />
+    </svg>
+);
+const TextAdventureIcon: React.FC<IconProps> = ({ className = "h-10 w-10" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 32 32" shapeRendering="crispEdges" fill="currentColor">
+        <path d="M4 6 H 28 V 26 H 4 Z" fill="#000" />
+        <path d="M6 8 H 26 V 24 H 6 Z" fill="#111" />
+        <text x="7" y="14" fill="#0f0" style={{fontFamily: "'VT323', monospace", fontSize: "6px"}}> &gt; _ </text>
+    </svg>
+);
+const PixelPegsIcon: React.FC<IconProps> = ({ className = "h-10 w-10" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 32 32" shapeRendering="crispEdges" fill="currentColor">
+        <circle cx="16" cy="8" r="3" fill="#fff" />
+        <circle cx="10" cy="15" r="2" fill="#ff7f50" />
+        <circle cx="22" cy="15" r="2" fill="#4169e1" />
+        <circle cx="16" cy="22" r="2" fill="#4169e1" />
+    </svg>
+);
+const BrickBreakerIcon: React.FC<IconProps> = ({ className = "h-10 w-10" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 32 32" shapeRendering="crispEdges" fill="currentColor">
+        <rect x="4" y="26" width="24" height="2" fill="#ddd" />
+        <rect x="4" y="8" width="6" height="3" fill="#f99" />
+        <rect x="13" y="8" width="6" height="3" fill="#f99" />
+        <rect x="22" y="8" width="6" height="3" fill="#f99" />
+        <rect x="8" y="13" width="6" height="3" fill="#f99" />
+        <rect x="17" y="13" width="6" height="3" fill="#f99" />
+    </svg>
+);
+const PongIcon: React.FC<IconProps> = ({ className = "h-10 w-10" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 32 32" shapeRendering="crispEdges" fill="currentColor">
+        <rect x="4" y="12" width="2" height="8" fill="white" stroke="black" strokeWidth="1" />
+        <rect x="26" y="12" width="2" height="8" fill="white" stroke="black" strokeWidth="1" />
+        <rect x="15" y="15" width="2" height="2" fill="white" />
+    </svg>
+);
+const TetrisIcon: React.FC<IconProps> = ({ className = "h-10 w-10" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 32 32" shapeRendering="crispEdges" fill="currentColor">
+        <rect x="12" y="8" width="4" height="4" fill="#00FFFF" stroke="black" strokeWidth="1" />
+        <rect x="12" y="12" width="4" height="4" fill="#00FFFF" stroke="black" strokeWidth="1" />
+        <rect x="12" y="16" width="4" height="4" fill="#00FFFF" stroke="black" strokeWidth="1" />
+        <rect x="16" y="16" width="4" height="4" fill="#FFA500" stroke="black" strokeWidth="1" />
+        <rect x="8" y="16" width="4" height="4" fill="#FFFF00" stroke="black" strokeWidth="1" />
+    </svg>
+);
+const PacManIcon: React.FC<IconProps> = ({ className = "h-10 w-10" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 32 32" shapeRendering="crispEdges" fill="currentColor">
+        <path d="M16 4 A 12 12 0 1 1 16 28 A 12 12 0 1 1 16 4" fill="yellow" />
+        <path d="M16 16 L 28 16 L 16 4 Z" fill="black" />
+        <circle cx="22" cy="10" r="1" fill="white" />
+    </svg>
+);
+const MotherloadIcon: React.FC<IconProps> = ({ className = "h-10 w-10" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 32 32" shapeRendering="crispEdges" fill="currentColor">
+        <path d="M12 4 L 20 4 L 22 8 L 10 8 Z" fill="#ff0000" />
+        <rect x="10" y="8" width="12" height="12" fill="#c0c0c0" />
+        <path d="M14 20 L 18 20 L 16 26 Z" fill="#ffd700" />
+    </svg>
+);
+
 
 export const APPS: AppDefinition[] = [
     { id: 'finder', name: 'Finder', icon: <FinderIcon />, component: Finder, defaultSize: { width: 600, height: 400 } },
@@ -251,35 +318,40 @@ export const APPS: AppDefinition[] = [
         { title: 'Layer', items: [{ label: 'New Layer', event: 'macshop:layer:new'}, { label: 'Delete Layer', event: 'macshop:layer:delete'}]},
         { title: 'Filter', items: [{ label: 'Generative Fill...', event: 'macshop:filter:genfill'}]}
     ]},
-    { id: 'painter', name: 'Painter', icon: <PainterIcon />, component: PixelPainter, defaultSize: { width: 500, height: 400 }, menus: [
-        { title: 'File', items: [{ label: 'New', event: 'painter:file:new'}, { label: 'Open...', event: 'painter:file:open'}, { separator: true }, { label: 'Save', event: 'painter:file:save'}, { label: 'Save As...', event: 'painter:file:saveas'}] },
-        { title: 'Edit', items: [{ label: 'Undo', event: 'painter:edit:undo'}]},
-        { title: 'Tools', items: ['pencil', 'eraser', 'fill', 'line', 'rectangle', 'oval'].map(t => ({label: t.charAt(0).toUpperCase() + t.slice(1), event: `painter:tools:${t}`}))}
+    { id: 'painter', name: 'Painter', icon: <PainterIcon />, component: PixelPainter, defaultSize: { width: 600, height: 500 }, menus: [
+        { title: 'File', items: [{ label: 'New', event: 'painter:file:new' }, { label: 'Open...', event: 'painter:file:open' }, { separator: true }, { label: 'Save', event: 'painter:file:save' }, { label: 'Save As...', event: 'painter:file:saveas' }] },
+        { title: 'Edit', items: [{ label: 'Undo', event: 'painter:edit:undo' }] },
+        { title: 'Tools', items: [
+            { label: 'Pencil', event: 'painter:tools:pencil' },
+            { label: 'Eraser', event: 'painter:tools:eraser' },
+            { label: 'Fill', event: 'painter:tools:fill' },
+            { label: 'Line', event: 'painter:tools:line' },
+            { label: 'Rectangle', event: 'painter:tools:rectangle' },
+            { label: 'Oval', event: 'painter:tools:oval' }
+        ]}
     ]},
-    { id: 'cloud-mixer', name: 'Cloud Mixer', icon: <DocumentIcon />, component: CloudMixer, defaultSize: { width: 800, height: 600 }, menus: [
-        { title: 'File', items: [{ label: 'New', event: 'cloudmixer:file:new'}, { label: 'Open...', event: 'cloudmixer:file:open'}, { separator: true }, { label: 'Save', event: 'cloudmixer:file:save'}, { label: 'Save As...', event: 'cloudmixer:file:saveas'}] },
-        { title: 'Tool', items: [{ label: 'Color Cloud', event: 'cloudmixer:tool:color'}, { label: 'Water', event: 'cloudmixer:tool:water'}] },
-        { title: 'Obstacle', items: [{ label: 'Circle', event: 'cloudmixer:obstacle:circle'}, { label: 'Line', event: 'cloudmixer:obstacle:line'}, { label: 'Box', event: 'cloudmixer:obstacle:box'}] },
-        { title: 'Special', items: [{ label: 'Wormhole', event: 'cloudmixer:special:wormhole'}, { label: 'Blue Portal', event: 'cloudmixer:special:portal_blue'}, { label: 'Orange Portal', event: 'cloudmixer:special:portal_orange'}] }
+    { id: 'zurg-cabin', name: 'Zurg\'s Cabin', icon: <ZurgCabinIcon />, component: ZurgCabin, defaultSize: { width: 800, height: 600 } },
+    { id: 'old-pc', name: 'Old PC', icon: <TextAdventureIcon />, component: TextAdventure, defaultSize: { width: 500, height: 400 } },
+    { id: 'cloud-mixer', name: 'Cloud Mixer', icon: <CloudMixerIcon />, component: CloudMixer, defaultSize: { width: 800, height: 600 }, menus: [
+        { title: 'File', items: [{ label: 'New', event: 'cloudmixer:file:new'}, { label: 'Open...', event: 'cloudmixer:file:open'}, { separator: true }, { label: 'Save', event: 'cloudmixer:file:save'}, { label: 'Save As...', event: 'cloudmixer:file:saveas'}]},
+        { title: 'Tools', items: [{ label: 'Color Cloud', event: 'cloudmixer:tool:color'}, { label: 'Water', event: 'cloudmixer:tool:water'}]},
+        { title: 'Obstacles', items: [{ label: 'Circle', event: 'cloudmixer:obstacle:circle'}, { label: 'Line', event: 'cloudmixer:obstacle:line'}, { label: 'Box', event: 'cloudmixer:obstacle:box'}]},
+        { title: 'Special', items: [{ label: 'Wormhole', event: 'cloudmixer:special:wormhole'}, { label: 'Blue Portal', event: 'cloudmixer:special:portal_blue'}, { label: 'Orange Portal', event: 'cloudmixer:special:portal_orange'}]},
+    ]},
+    { id: 'pixel-pegs', name: 'Pixel Pegs', icon: <PixelPegsIcon />, component: PixelPegs, defaultSize: { width: 430, height: 630 }, menus: [{ title: 'Game', items: [{ label: 'New Game', event: 'pixelpegs:game:new' }] }] },
+    { id: 'brick-breaker', name: 'Brick Breaker', icon: <BrickBreakerIcon />, component: BrickBreaker, defaultSize: { width: 420, height: 480 }, menus: [{ title: 'Game', items: [{ label: 'New Game', event: 'brickbreaker:new' }] }] },
+    { id: 'pong', name: 'Pong', icon: <PongIcon />, component: Pong, defaultSize: { width: 600, height: 400 } },
+    { id: 'tetris', name: 'Tetris', icon: <TetrisIcon />, component: Tetris, defaultSize: { width: 380, height: 530 }, menus: [{ title: 'Game', items: [{ label: 'New Game', event: 'tetris:new' }] }] },
+    { id: 'pac-man', name: 'Pac-Man', icon: <PacManIcon />, component: PacMan, defaultSize: { width: 400, height: 480 }, menus: [{ title: 'Game', items: [{ label: 'New Game', event: 'pacman:new' }] }] },
+    { id: 'chirper', name: 'Chirper', icon: <ChirperIcon />, component: Chirper, defaultSize: { width: 900, height: 500 }, menus: [{ title: 'Feed', items: [{ label: 'Refresh', event: 'chirper:feed:refresh' }] }] },
+    { id: 'motherload', name: 'Motherload', icon: <MotherloadIcon />, component: Motherload, defaultSize: { width: 800, height: 600 }, menus: [{ title: 'Game', items: [{ label: 'New Game', event: 'motherload:game:new' }] }] },
+    { id: 'stickies', name: 'Stickies', icon: <StickyNoteIcon />, component: () => null, defaultSize: { width: 0, height: 0 } },
+    { id: 'stickynote-window', name: 'Sticky Note', icon: <StickyNoteIcon />, component: StickyNoteWindow, defaultSize: { width: 250, height: 250 } },
+    { id: 'notebook', name: 'Notebook', icon: <NewNotebookIcon />, component: Notebook, defaultSize: { width: 800, height: 600 } },
+    { id: 'campaign-weaver', name: 'Campaign Weaver', icon: <CampaignWeaverIcon />, component: CampaignWeaver, defaultSize: { width: 1000, height: 700 }, menus: [
+        { title: 'File', items: [{ label: 'New', event: 'campaign:file:new'}, { label: 'Open...', event: 'campaign:file:open'}, { separator: true }, { label: 'Save', event: 'campaign:file:save'}, { label: 'Save As...', event: 'campaign:file:saveas'}, { separator: true }, { label: 'Link Document...', event: 'campaign:file:linkdocument' }] }
     ]},
     { id: 'calculator', name: 'Calculator', icon: <CalculatorIcon />, component: Calculator, defaultSize: { width: 250, height: 350 } },
-    { id: 'clock', name: 'Clock', icon: <ClockIcon />, component: ClockApp, defaultSize: { width: 300, height: 320 } },
-    { id: 'calendar', name: 'Calendar', icon: <CalendarIcon />, component: CalendarApp, defaultSize: { width: 400, height: 350 } },
-    { id: 'chirper', name: 'Chirper', icon: <ChirperIcon />, component: Chirper, defaultSize: { width: 900, height: 600 }, menus: [{ title: 'Feed', items: [{ label: 'Refresh', event: 'chirper:feed:refresh'}]}] },
-    { id: 'stickies', name: 'Stickies', icon: <StickyNoteIcon />, component: () => <></>, defaultSize: { width: 200, height: 200 } }, // Dummy component, handled by context
-    { id: 'stickynote-window', name: 'Sticky Note', icon: <StickyNoteIcon />, component: StickyNoteWindow, defaultSize: { width: 200, height: 200 } },
-    { id: 'notebook', name: 'Notebook', icon: <NewNotebookIcon />, component: Notebook, defaultSize: { width: 800, height: 600 } },
-    { id: 'campaign-weaver', name: 'Campaign Weaver', icon: <CampaignWeaverIcon />, component: CampaignWeaver, defaultSize: { width: 950, height: 700 }, menus: [
-      { title: 'File', items: [{ label: 'New', event: 'campaign:file:new' }, { label: 'Open...', event: 'campaign:file:open' }, { separator: true }, { label: 'Save', event: 'campaign:file:save' }, { label: 'Save As...', event: 'campaign:file:saveas' }, { separator: true }, { label: 'Link Document...', event: 'campaign:file:linkdocument'}] }
-    ]},
-
-    // --- GAMES ---
-    { id: 'zurg-cabin', name: 'Zurg\'s Cabin', icon: <DocumentIcon />, component: ZurgCabin, defaultSize: { width: 800, height: 600 } },
-    { id: 'old-pc', name: 'Old PC', icon: <MacWriteIcon />, component: TextAdventure, defaultSize: { width: 640, height: 480 } },
-    { id: 'pixel-pegs', name: 'Pixel Pegs', icon: <DocumentIcon />, component: PixelPegs, defaultSize: { width: 420, height: 650 }, menus: [{ title: 'Game', items: [{ label: 'New Game', event: 'pixelpegs:game:new' }]}] },
-    { id: 'brick-breaker', name: 'Brick Breaker', icon: <DocumentIcon />, component: BrickBreaker, defaultSize: { width: 420, height: 500 }, menus: [{ title: 'Game', items: [{ label: 'New Game', event: 'brickbreaker:new'}]}] },
-    { id: 'pong', name: 'Pong', icon: <DocumentIcon />, component: Pong, defaultSize: { width: 600, height: 430 } },
-    { id: 'tetris', name: 'Tetris', icon: <DocumentIcon />, component: Tetris, defaultSize: { width: 400, height: 550 }, menus: [{ title: 'Game', items: [{ label: 'New Game', event: 'tetris:new'}]}] },
-    { id: 'pac-man', name: 'Pac-Man', icon: <DocumentIcon />, component: PacMan, defaultSize: { width: 400, height: 500 }, menus: [{ title: 'Game', items: [{ label: 'New Game', event: 'pacman:new'}]}] },
-    { id: 'motherload', name: 'Motherload', icon: <DocumentIcon />, component: Motherload, defaultSize: { width: 800, height: 600 }, menus: [{ title: 'Game', items: [{ label: 'New Game', event: 'motherload:game:new'}]}] },
+    { id: 'clock', name: 'Clock', icon: <ClockIcon />, component: ClockApp, defaultSize: { width: 300, height: 300 } },
+    { id: 'calendar', name: 'Calendar', icon: <CalendarIcon />, component: CalendarApp, defaultSize: { width: 450, height: 400 } },
 ];

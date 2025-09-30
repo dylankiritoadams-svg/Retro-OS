@@ -14,10 +14,11 @@ const getAiInstance = (): GoogleGenAI => {
     }
 
     try {
+        // @FIX: Use process.env.API_KEY as per guidelines.
         const apiKey = process.env.API_KEY;
         if (!apiKey) {
-            // This is a common deployment issue, so provide a clear error message.
-            throw new Error("API_KEY environment variable not set. Please configure it in your deployment settings.");
+            // This is a common setup issue, so provide a clear error message.
+            throw new Error("Gemini API key not found. Please set the API_KEY environment variable in your Vercel project settings.");
         }
         ai = new GoogleGenAI({ apiKey });
         return ai;
@@ -180,8 +181,9 @@ Text: "${text}"`;
                                     },
                                     duration: {
                                         type: Type.INTEGER,
+                                        // @FIX: Corrected unterminated string in description
                                         description: "The duration of the task in minutes. Omit if not specified.",
-                                    }
+                                    },
                                 },
                             },
                         },
@@ -189,6 +191,7 @@ Text: "${text}"`;
                 },
             },
         });
+        // @FIX: Added missing return statement
         return JSON.parse(response.text.trim());
     } catch (e: any) {
         console.error("Gemini API Error (generateTasksFromText):", e);
@@ -196,82 +199,207 @@ Text: "${text}"`;
     }
 };
 
-
-// --- MacShop App ---
-const getAspectRatio = (width: number, height: number): "1:1" | "3:4" | "4:3" | "9:16" | "16:9" => {
-    const ratio = width / height;
-    const supportedRatios = { "1:1": 1, "3:4": 0.75, "4:3": 1.33, "9:16": 0.56, "16:9": 1.77 };
-    const closest = Object.entries(supportedRatios).reduce((prev, curr) => {
-        return (Math.abs(curr[1] - ratio) < Math.abs(prev[1] - ratio) ? curr : prev);
-    });
-    return closest[0] as "1:1" | "3:4" | "4:3" | "9:16" | "16:9";
-}
-
+// @FIX: Implement and export missing function
 export const generateMacShopImage = async (prompt: string, width: number, height: number): Promise<string> => {
     try {
         const aiInstance = getAiInstance();
+        
+        let aspectRatio: "1:1" | "3:4" | "4:3" | "9:16" | "16:9" = "1:1";
+        const ratio = width / height;
+        if (Math.abs(ratio - 3/4) < 0.1) aspectRatio = "3:4";
+        else if (Math.abs(ratio - 4/3) < 0.1) aspectRatio = "4:3";
+        else if (Math.abs(ratio - 9/16) < 0.1) aspectRatio = "9:16";
+        else if (Math.abs(ratio - 16/9) < 0.1) aspectRatio = "16:9";
+
         const response = await aiInstance.models.generateImages({
             model: 'imagen-4.0-generate-001',
             prompt: prompt,
             config: {
-                numberOfImages: 1,
-                outputMimeType: 'image/png',
-                aspectRatio: getAspectRatio(width, height),
+              numberOfImages: 1,
+              outputMimeType: 'image/png',
+              aspectRatio: aspectRatio,
             },
         });
-        const base64ImageBytes = response.generatedImages[0].image.imageBytes;
-        return `data:image/png;base64,${base64ImageBytes}`;
+
+        if (response.generatedImages && response.generatedImages.length > 0) {
+            const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;
+            const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
+            return imageUrl;
+        } else {
+            throw new Error("No image was generated.");
+        }
     } catch (e: any) {
         console.error("Gemini API Error (generateMacShopImage):", e);
-        throw new Error(`Failed to generate image: ${e.message}`);
+        throw new Error(`Failed to generate image from Gemini API: ${e.message}`);
     }
 };
 
-// --- Campaign Weaver ---
-const generateJsonForEntityType = async <T,>(prompt: string, schema: any): Promise<T> => {
+// @FIX: Implement and export missing function
+export const generateNpc = async (prompt: string): Promise<Partial<CampaignNpc>> => {
+    const fullPrompt = `Generate a detailed TTRPG NPC based on the following concept: "${prompt}". Provide a name, a detailed description, and some secrets or motivations.`;
     try {
         const aiInstance = getAiInstance();
         const response = await aiInstance.models.generateContent({
             model,
-            contents: prompt,
+            contents: fullPrompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: schema
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        name: { type: Type.STRING, description: "The NPC's full name." },
+                        description: { type: Type.STRING, description: "A detailed physical and personality description for the NPC." },
+                        secrets: { type: Type.STRING, description: "Hidden information, motivations, or secrets the NPC holds." },
+                    },
+                    required: ["name", "description", "secrets"],
+                },
             },
         });
         return JSON.parse(response.text.trim());
     } catch (e: any) {
-        console.error("Gemini API Error (generateJsonForEntityType):", e);
-        throw new Error(`Failed to generate entity: ${e.message}`);
+        console.error("Gemini API Error (generateNpc):", e);
+        throw new Error(`Failed to generate NPC: ${e.message}`);
     }
 };
 
-export const generateNpc = (prompt: string): Promise<Partial<CampaignNpc>> => generateJsonForEntityType(
-    `Generate a non-player character for a fantasy RPG based on this prompt: "${prompt}". Fill out the description and secrets.`,
-    { type: Type.OBJECT, properties: { name: { type: Type.STRING }, description: { type: Type.STRING }, secrets: { type: Type.STRING } } }
-);
+// @FIX: Implement and export missing function
+export const generateLocation = async (prompt: string): Promise<Partial<CampaignLocation>> => {
+    const fullPrompt = `Generate a detailed TTRPG location based on the following concept: "${prompt}". Provide a name and a rich description including sights, sounds, smells, and potential points of interest.`;
+    try {
+        const aiInstance = getAiInstance();
+        const response = await aiInstance.models.generateContent({
+            model,
+            contents: fullPrompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        name: { type: Type.STRING, description: "The name of the location." },
+                        description: { type: Type.STRING, description: "A detailed description of the location, including sensory details and points of interest." },
+                    },
+                    required: ["name", "description"],
+                },
+            },
+        });
+        return JSON.parse(response.text.trim());
+    } catch (e: any) {
+        console.error("Gemini API Error (generateLocation):", e);
+        throw new Error(`Failed to generate location: ${e.message}`);
+    }
+};
 
-export const generateLocation = (prompt: string): Promise<Partial<CampaignLocation>> => generateJsonForEntityType(
-    `Generate a location for a fantasy RPG based on this prompt: "${prompt}". Fill out the description.`,
-    { type: Type.OBJECT, properties: { name: { type: Type.STRING }, description: { type: Type.STRING } } }
-);
+// @FIX: Implement and export missing function
+export const generateFaction = async (prompt: string): Promise<Partial<CampaignFaction>> => {
+    const fullPrompt = `Generate a detailed TTRPG faction based on the following concept: "${prompt}". Provide a name, their primary goals, and the resources they command.`;
+    try {
+        const aiInstance = getAiInstance();
+        const response = await aiInstance.models.generateContent({
+            model,
+            contents: fullPrompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        name: { type: Type.STRING, description: "The name of the faction." },
+                        goals: { type: Type.STRING, description: "The faction's primary objectives and motivations." },
+                        resources: { type: Type.STRING, description: "The assets, personnel, and influence the faction possesses." },
+                    },
+                    required: ["name", "goals", "resources"],
+                },
+            },
+        });
+        return JSON.parse(response.text.trim());
+    } catch (e: any) {
+        console.error("Gemini API Error (generateFaction):", e);
+        throw new Error(`Failed to generate faction: ${e.message}`);
+    }
+};
 
-export const generateFaction = (prompt: string): Promise<Partial<CampaignFaction>> => generateJsonForEntityType(
-    `Generate a faction for a fantasy RPG based on this prompt: "${prompt}". Describe their goals and resources.`,
-    { type: Type.OBJECT, properties: { name: { type: Type.STRING }, goals: { type: Type.STRING }, resources: { type: Type.STRING } } }
-);
+// @FIX: Implement and export missing function
+export const generateItem = async (prompt: string): Promise<Partial<CampaignItem>> => {
+    const fullPrompt = `Generate a detailed TTRPG item based on the following concept: "${prompt}". Provide a name, a physical description, and its magical or mundane properties.`;
+    try {
+        const aiInstance = getAiInstance();
+        const response = await aiInstance.models.generateContent({
+            model,
+            contents: fullPrompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        name: { type: Type.STRING, description: "The name of the item." },
+                        description: { type: Type.STRING, description: "A physical description of the item." },
+                        properties: { type: Type.STRING, description: "The item's special abilities, magical properties, or functional uses." },
+                    },
+                    required: ["name", "description", "properties"],
+                },
+            },
+        });
+        return JSON.parse(response.text.trim());
+    } catch (e: any) {
+        console.error("Gemini API Error (generateItem):", e);
+        throw new Error(`Failed to generate item: ${e.message}`);
+    }
+};
 
-export const generateItem = (prompt: string): Promise<Partial<CampaignItem>> => generateJsonForEntityType(
-    `Generate a magic item for a fantasy RPG based on this prompt: "${prompt}". Fill out its description and properties.`,
-    { type: Type.OBJECT, properties: { name: { type: Type.STRING }, description: { type: Type.STRING }, properties: { type: Type.STRING } } }
-);
+// @FIX: Implement and export missing function
+export const generateStoryArc = async (prompt: string): Promise<Partial<CampaignStoryArc>> => {
+    const fullPrompt = `Generate a detailed TTRPG story arc based on the following concept: "${prompt}". Provide a name, a summary, a list of key events, linked lore, and a potential resolution.`;
+    try {
+        const aiInstance = getAiInstance();
+        const response = await aiInstance.models.generateContent({
+            model,
+            contents: fullPrompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        name: { type: Type.STRING, description: "The title of the story arc." },
+                        summary: { type: Type.STRING, description: "A brief overview of the story arc." },
+                        keyEvents: { type: Type.STRING, description: "A list of major plot points or events that will happen." },
+                        linkedLore: { type: Type.STRING, description: "Connections to the wider world, history, or other entities." },
+                        resolution: { type: Type.STRING, description: "Potential ways the story arc could conclude." },
+                    },
+                    required: ["name", "summary", "keyEvents"],
+                },
+            },
+        });
+        return JSON.parse(response.text.trim());
+    } catch (e: any) {
+        console.error("Gemini API Error (generateStoryArc):", e);
+        throw new Error(`Failed to generate story arc: ${e.message}`);
+    }
+};
 
-export const generateStoryArc = (prompt: string): Promise<Partial<CampaignStoryArc>> => generateJsonForEntityType(
-    `Generate a story arc for a fantasy RPG based on this prompt: "${prompt}". Provide a summary, key events, linked lore, and a possible resolution.`,
-    { type: Type.OBJECT, properties: { name: { type: Type.STRING }, summary: { type: Type.STRING }, keyEvents: { type: Type.STRING }, linkedLore: { type: Type.STRING }, resolution: { type: Type.STRING } } }
-);
-
-export const generateSessionOutline = (prompt: string): Promise<Partial<CampaignSession>> => generateJsonForEntityType(
-    `Generate a session outline for a fantasy RPG based on this prompt: "${prompt}". Provide a summary, planned events, and linked lore. Leave post-session notes empty.`,
-    { type: Type.OBJECT, properties: { name: { type: Type.STRING }, summary: { type: Type.STRING }, plannedEvents: { type: Type.STRING }, linkedLore: { type: Type.STRING }, postSessionNotes: { type: Type.STRING, default: "" } } }
-);
+// @FIX: Implement and export missing function
+export const generateSessionOutline = async (prompt: string): Promise<Partial<CampaignSession>> => {
+    const fullPrompt = `Generate a TTRPG session outline based on the following concept: "${prompt}". Provide a name for the session, a summary, a list of planned events, and some relevant linked lore.`;
+    try {
+        const aiInstance = getAiInstance();
+        const response = await aiInstance.models.generateContent({
+            model,
+            contents: fullPrompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        name: { type: Type.STRING, description: "The title of the session." },
+                        summary: { type: Type.STRING, description: "A brief overview of the session's goal." },
+                        plannedEvents: { type: Type.STRING, description: "A sequence of potential scenes or events for the session." },
+                        linkedLore: { type: Type.STRING, description: "Connections to the wider world, history, or other entities relevant to this session." },
+                    },
+                    required: ["name", "summary", "plannedEvents"],
+                },
+            },
+        });
+        return JSON.parse(response.text.trim());
+    } catch (e: any) {
+        console.error("Gemini API Error (generateSessionOutline):", e);
+        throw new Error(`Failed to generate session outline: ${e.message}`);
+    }
+};
