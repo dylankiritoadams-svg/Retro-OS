@@ -46,24 +46,6 @@ const generateText = async (prompt: string): Promise<string> => {
     }
 };
 
-// --- gTerminal & DeepSearch Apps ---
-export const getGroundedResponse = async (prompt: string): Promise<GenerateContentResponse> => {
-    try {
-        const aiInstance = getAiInstance();
-        const response = await aiInstance.models.generateContent({
-            model,
-            contents: prompt,
-            config: {
-                tools: [{googleSearch: {}}],
-            },
-        });
-        return response;
-    } catch (e: any) {
-        console.error("Gemini API Error (getGroundedResponse):", e);
-        throw new Error(`Failed to get grounded response from Gemini API: ${e.message}`);
-    }
-};
-
 // --- Writer App ---
 export const getWriterSuggestion = (prompt: string): Promise<string> => {
     return generateText(prompt);

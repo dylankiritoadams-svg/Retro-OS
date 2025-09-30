@@ -1,5 +1,18 @@
-import React from 'react';
+import React, { createContext, useContext } from 'react';
 import { Chat } from '@google/genai';
+
+// --- App Context (moved here to break circular dependency) ---
+export interface AppContextType {
+    openApp: (appId: string, props?: Record<string, any>) => void;
+}
+
+export const AppContext = createContext<AppContextType | null>(null);
+
+export const useApp = () => {
+    const context = useContext(AppContext);
+    if(!context) throw new Error("useApp must be used within an AppProvider");
+    return context;
+}
 
 // --- General ---
 export interface IconProps {
@@ -43,6 +56,7 @@ export interface WindowInstance {
     };
     props?: Record<string, any>;
     isNote?: boolean;
+    isMinimized?: boolean;
 }
 
 // --- File System & Documents ---
@@ -95,6 +109,7 @@ export interface DocumentContextType {
 // --- Settings ---
 export type Wallpaper = 'none' | 'grid' | 'dots';
 export type UIMode = 'mac' | 'windows';
+export type DesktopMode = 'scrolling' | 'fixed';
 
 export interface ColorScheme {
     id: string;
@@ -113,6 +128,7 @@ export interface ThemeSettings {
     fontId: string;
     wallpaper: Wallpaper;
     uiMode: UIMode;
+    desktopMode: DesktopMode;
 }
 
 export interface ThemeContextType {
@@ -121,6 +137,7 @@ export interface ThemeContextType {
     setFont: (id: string) => void;
     setWallpaper: (wallpaper: Wallpaper) => void;
     setUiMode: (mode: UIMode) => void;
+    setDesktopMode: (mode: DesktopMode) => void;
     colorSchemes: ColorScheme[];
     fonts: Font[];
     getActiveColorScheme: () => ColorScheme;
@@ -573,4 +590,12 @@ export interface PinBoardContextType {
     addTask: (taskId: string, pos: { x: number; y: number; }) => void;
     updateNode: (id: string, data: Partial<AnyPinBoardNode>) => void;
     deleteNode: (id: string) => void;
+}
+
+// --- RetroBoard ---
+export interface RetroBoardMessage {
+    id: string;
+    username: string;
+    content: string;
+    timestamp: Date;
 }

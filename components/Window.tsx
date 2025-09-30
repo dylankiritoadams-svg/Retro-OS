@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { WindowInstance, AppDefinition, MenuDefinition, MenuItem } from '../types';
 import { useTheme } from '../SettingsContext';
@@ -11,7 +12,8 @@ interface WindowProps {
     onPositionChange: (id: string, position: { x: number; y: number }) => void;
     onSizeChange: (id: string, size: { width: number, height: number }) => void;
     isActive: boolean;
-    onSplit: (id: string, direction: 'left' | 'right') => void;
+    onMinimize: (id: string) => void;
+    onSplit: (id: string, direction: 'left' | 'right' | 'top' | 'bottom') => void;
 }
 
 const MIN_WIDTH = 200;
@@ -74,7 +76,7 @@ const Win95Menu: React.FC<{ menus: MenuDefinition[], instanceId: string }> = ({ 
     )
 }
 
-const Window: React.FC<WindowProps> = ({ instance, app, onClose, onFocus, onPositionChange, onSizeChange, isActive, onSplit }) => {
+const Window: React.FC<WindowProps> = ({ instance, app, onClose, onFocus, onPositionChange, onSizeChange, isActive, onMinimize, onSplit }) => {
     const { theme } = useTheme();
     const { uiMode } = theme;
 
@@ -197,6 +199,8 @@ const Window: React.FC<WindowProps> = ({ instance, app, onClose, onFocus, onPosi
         )
     }
 
+    const isMinimized = !!instance.isMinimized;
+
     const macWindow = (
         <div
             ref={nodeRef}
@@ -205,7 +209,7 @@ const Window: React.FC<WindowProps> = ({ instance, app, onClose, onFocus, onPosi
                 left: instance.position.x,
                 top: instance.position.y,
                 width: instance.size.width,
-                height: instance.size.height,
+                height: isMinimized ? '22px' : instance.size.height,
                 zIndex: instance.zIndex,
             }}
             onMouseDown={handleFocus}
@@ -217,19 +221,24 @@ const Window: React.FC<WindowProps> = ({ instance, app, onClose, onFocus, onPosi
                 onTouchStart={(e) => handleInteractionStart(e, 'drag')}
             >
                 <div className="classic-close-box" onMouseDown={(e) => { e.stopPropagation(); onClose(instance.id); }}></div>
+                {!instance.isNote && (
+                    <div className="classic-minimize-box" onMouseDown={(e) => { e.stopPropagation(); onMinimize(instance.id); }}></div>
+                )}
                 <h2 className="flex-grow text-center truncate">{app.name}</h2>
                  {!instance.isNote && (
                     <div className="flex items-center space-x-1 mr-1">
+                        <button onMouseDown={(e) => { e.stopPropagation(); onSplit(instance.id, 'top'); }} className="classic-split-button">⬓</button>
+                        <button onMouseDown={(e) => { e.stopPropagation(); onSplit(instance.id, 'bottom'); }} className="classic-split-button">⬒</button>
                         <button onMouseDown={(e) => { e.stopPropagation(); onSplit(instance.id, 'left'); }} className="classic-split-button">◧</button>
                         <button onMouseDown={(e) => { e.stopPropagation(); onSplit(instance.id, 'right'); }} className="classic-split-button">◨</button>
                     </div>
                 )}
             </header>
-            <main className="w-full h-[calc(100%-23px)] overflow-hidden">
+            <main className={`w-full h-[calc(100%-23px)] overflow-hidden ${isMinimized ? 'hidden' : ''}`}>
                 <AppComponent isActive={isActive} instanceId={instance.id} {...instance.props} />
             </main>
             <div
-                className="classic-resize-handle"
+                className={`classic-resize-handle ${isMinimized ? 'hidden' : ''}`}
                 onMouseDown={(e) => handleInteractionStart(e, 'resize')}
                 onTouchStart={(e) => handleInteractionStart(e, 'resize')}
             ></div>
@@ -255,6 +264,8 @@ const Window: React.FC<WindowProps> = ({ instance, app, onClose, onFocus, onPosi
                 <div className="win95-title-bar-controls">
                     {!instance.isNote && (
                         <>
+                            <button className="win95-border-outset" onClick={() => onSplit(instance.id, 'top')}>⬓</button>
+                            <button className="win95-border-outset" onClick={() => onSplit(instance.id, 'bottom')}>⬒</button>
                             <button className="win95-border-outset" onClick={() => onSplit(instance.id, 'left')}>◧</button>
                             <button className="win95-border-outset" onClick={() => onSplit(instance.id, 'right')}>◨</button>
                         </>

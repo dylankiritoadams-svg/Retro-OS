@@ -1,3 +1,5 @@
+
+
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useTaskPlanner } from '../../TaskPlannerContext';
 import { Task, SubTask, Repeatable, RepeatableType, RepeatableFrequency } from '../../types';
@@ -17,7 +19,7 @@ import {
     addMinutes,
     differenceInMinutes
 } from 'date-fns';
-import { useApp } from '../../App';
+import { useApp } from '../../types';
 
 interface AppProps {
     isActive: boolean;

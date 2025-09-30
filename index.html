@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -32,6 +31,13 @@
         image-rendering: pixelated;
         font-smooth: never;
         -webkit-font-smoothing: none;
+        overflow: hidden; /* Prevent body scroll */
+      }
+      
+      #os-container[data-desktop-mode="fixed"] {
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
       }
 
       /* --- Classic Mac UI Styles --- */
@@ -57,11 +63,19 @@
         height: 14px;
         border: 1px solid var(--text-color);
         margin-left: 4px;
+        margin-right: 4px;
+        background-color: var(--window-bg);
+        cursor: pointer;
+      }
+      .classic-minimize-box {
+        width: 14px;
+        height: 14px;
+        border: 1px solid var(--text-color);
         margin-right: 8px;
         background-color: var(--window-bg);
         cursor: pointer;
       }
-       .classic-close-box:active {
+       .classic-minimize-box:active, .classic-close-box:active {
         background-color: var(--text-color);
       }
       .classic-split-button {
@@ -230,7 +244,8 @@
     "three/addons/": "https://esm.sh/three@^0.167.0/examples/jsm/",
     "three/": "https://esm.sh/three@^0.167.0/",
     "date-fns": "https://aistudiocdn.com/date-fns@^4.1.0",
-    "epubjs": "https://esm.sh/epubjs@^0.3.93"
+    "epubjs": "https://esm.sh/epubjs@^0.3.93",
+    "firebase/": "https://esm.sh/firebase@^10.12.3/"
   }
 }
 </script>

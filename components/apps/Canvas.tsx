@@ -1,11 +1,11 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useCards } from '../../CardContext';
 import { GLASS_HUES } from '../../theme';
+import { useApp } from '../../types';
 import type { CanvasLayer, CanvasTool, CanvasCardElement, CanvasBoxElement, CanvasLineElement, AppDocument, CanvasElement } from '../../types';
 import { globalEmitter } from '../../events';
 import { useDocuments } from '../../DocumentContext';
 import { useFileSystem } from '../../FileSystemContext';
-import { useApp } from '../../App';
 
 interface AppProps {
   isActive: boolean;

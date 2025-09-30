@@ -1,5 +1,6 @@
-import React, { useState, useCallback, createContext, useContext, useMemo, useEffect, useRef } from 'react';
-import { WindowInstance, AppDefinition } from './types';
+
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { WindowInstance, AppDefinition, AppContext } from './types';
 import { APPS } from './constants';
 import Window from './components/Window';
 import Dock from './components/Dock';
@@ -15,21 +16,11 @@ import { PinBoard } from './components/PinBoard';
 import { globalEmitter } from './events';
 import { TaskPlannerProvider } from './TaskPlannerContext';
 
-interface AppContextType {
-    openApp: (appId: string, props?: Record<string, any>) => void;
-}
-export const AppContext = createContext<AppContextType | null>(null);
-export const useApp = () => {
-    const context = useContext(AppContext);
-    if(!context) throw new Error("useApp must be used within an AppProvider");
-    return context;
-}
-
 const WINDOW_STATE_KEY = 'retro_os_window_state';
 
 const OS: React.FC = () => {
     const { theme, getActiveColorScheme, getActiveFont } = useTheme();
-    const { notes, addNote, deleteNote } = useStickyNotes();
+    const { notes, addNote } = useStickyNotes();
     const mainRef = useRef<HTMLDivElement>(null);
     const [isPinBoardOpen, setIsPinBoardOpen] = useState(false);
 
@@ -51,13 +42,19 @@ const OS: React.FC = () => {
         try {
             const state = localStorage.getItem(WINDOW_STATE_KEY);
             const savedState = state ? JSON.parse(state) : {};
+            if (!savedState.windows || savedState.windows.length === 0) return 10;
             const maxZ = Math.max(
                 savedState.nextZIndex || 0,
-                ...(savedState.windows?.map((w: WindowInstance) => w.zIndex) || [0])
+                ...savedState.windows.map((w: WindowInstance) => w.zIndex)
             );
             return maxZ + 1;
         } catch { return 10; }
     });
+    
+    useEffect(() => {
+        const stateToSave = { windows, activeWindowId, nextZIndex };
+        localStorage.setItem(WINDOW_STATE_KEY, JSON.stringify(stateToSave));
+    }, [windows, activeWindowId, nextZIndex]);
 
     const togglePinBoard = useCallback(() => {
         setIsPinBoardOpen(prev => !prev);
@@ -71,213 +68,180 @@ const OS: React.FC = () => {
         // Add windows for new notes
         for (const note of notes) {
             if (!noteIdsWithWindows.has(note.id)) {
-                 const app = APPS.find(a => a.id === 'stickynote-window');
-                 if(!app) continue;
-                 const newWindow: WindowInstance = {
-                    id: `note-win-${note.id}`,
-                    appId: app.id,
-                    zIndex: nextZIndex,
-                    position: { x: 50 + ((windows.length % 10) * 20), y: 50 + ((windows.length % 10) * 20) },
-                    size: app.defaultSize,
-                    props: { noteId: note.id },
-                    isNote: true,
-                };
-                setWindows(prev => [...prev, newWindow]);
-                setActiveWindowId(newWindow.id);
-                setNextZIndex(prev => prev + 1);
+                const app = APPS.find(a => a.id === 'stickynote-window');
+                if (app) {
+                    const newWindow: WindowInstance = {
+                        id: `win-${note.id}`,
+                        appId: app.id,
+                        zIndex: nextZIndex,
+                        position: { x: Math.random() * 400 + 50, y: Math.random() * 200 + 50 },
+                        size: app.defaultSize,
+                        isNote: true,
+                        props: { noteId: note.id },
+                    };
+                    setWindows(prev => [...prev, newWindow]);
+                    setNextZIndex(p => p + 1);
+                }
             }
         }
-
         // Remove windows for deleted notes
-        const noteIdsInData = new Set(notes.map(n => n.id));
-        const windowsToRemove = noteWindows.filter(w => !noteIdsInData.has(w.props?.noteId as string));
-        if (windowsToRemove.length > 0) {
-            const idsToRemove = new Set(windowsToRemove.map(w => w.id));
-            setWindows(prev => prev.filter(w => !idsToRemove.has(w.id)));
+        const noteIds = new Set(notes.map(n => n.id));
+        const windowsToDelete = noteWindows.filter(w => !noteIds.has(w.props?.noteId));
+        if (windowsToDelete.length > 0) {
+            setWindows(prev => prev.filter(w => !windowsToDelete.some(dw => dw.id === w.id)));
         }
+    }, [notes, windows, nextZIndex]);
 
-    }, [notes, nextZIndex, windows.length]);
+    const focusWindow = useCallback((id: string) => {
+        if (id === activeWindowId) return;
 
-    // Save state to localStorage
-    useEffect(() => {
-        try {
-            const stateToSave = { windows, activeWindowId, nextZIndex };
-            localStorage.setItem(WINDOW_STATE_KEY, JSON.stringify(stateToSave));
-        } catch (e) {
-            console.error("Error saving window state:", e);
-        }
-    }, [windows, activeWindowId, nextZIndex]);
-    
-    // Effect to apply theme colors and font to the root element
-    useEffect(() => {
-        const root = document.documentElement;
-        const colorScheme = getActiveColorScheme();
-        const font = getActiveFont();
-
-        Object.entries(colorScheme.colors).forEach(([key, value]) => {
-            root.style.setProperty(key, value);
-        });
-        root.style.setProperty('--main-font', font.fontFamily);
-    }, [theme.colorSchemeId, theme.fontId, getActiveColorScheme, getActiveFont]);
-
-    // Effect to apply wallpaper and UI mode to the body
-    useEffect(() => {
-        document.body.className = `wallpaper-${theme.wallpaper}`;
-        document.body.dataset.uimode = theme.uiMode;
-    }, [theme.wallpaper, theme.uiMode]);
+        setWindows(prevWindows =>
+            prevWindows.map(w => (w.id === id ? { ...w, zIndex: nextZIndex } : w))
+        );
+        setActiveWindowId(id);
+        setNextZIndex(prev => prev + 1);
+    }, [activeWindowId, nextZIndex]);
 
     const openApp = useCallback((appId: string, props: Record<string, any> = {}) => {
         if (appId === 'stickies') {
-            addNote(); // This will trigger the useEffect to create a window
+            addNote();
             return;
         }
 
         const app = APPS.find(a => a.id === appId);
         if (!app) return;
-        
-        const mainEl = mainRef.current;
-        const viewportWidth = mainEl ? mainEl.clientWidth : window.innerWidth;
-        const viewportHeight = mainEl ? mainEl.clientHeight : window.innerHeight;
-        const scrollLeft = mainEl ? mainEl.scrollLeft : 0;
-        const scrollTop = mainEl ? mainEl.scrollTop : 0;
 
         const newWindow: WindowInstance = {
             id: `win-${Date.now()}`,
-            appId: app.id,
+            appId,
             zIndex: nextZIndex,
-            position: { 
-                x: scrollLeft + (viewportWidth / 2) - (app.defaultSize.width / 2) + ((windows.length % 10) * 20),
-                y: scrollTop + (viewportHeight / 2) - (app.defaultSize.height / 2) + ((windows.length % 10) * 20),
-            },
+            position: { x: 50 + Math.random() * 100, y: 50 + Math.random() * 100 },
             size: app.defaultSize,
-            props: props || {},
+            props,
         };
         setWindows(prev => [...prev, newWindow]);
-        setActiveWindowId(newWindow.id);
-        setNextZIndex(prev => prev + 1);
-    }, [nextZIndex, windows.length, addNote]);
+        focusWindow(newWindow.id);
+    }, [nextZIndex, focusWindow, addNote]);
 
     const closeWindow = useCallback((id: string) => {
-        const windowToClose = windows.find(w => w.id === id);
-
-        if (windowToClose?.isNote && windowToClose.props?.noteId) {
-            deleteNote(windowToClose.props.noteId);
-        }
-        
         setWindows(prev => prev.filter(w => w.id !== id));
         if (activeWindowId === id) {
-            const remainingWindows = windows.filter(w => w.id !== id);
-            if (remainingWindows.length > 0) {
-                 const topWindow = remainingWindows.reduce((prev, current) => (prev.zIndex > current.zIndex) ? prev : current);
-                 setActiveWindowId(topWindow.id);
-            } else {
-                 setActiveWindowId(null);
-            }
+            setActiveWindowId(null);
         }
-    }, [activeWindowId, windows, deleteNote]);
-
-    useEffect(() => {
-        const handleQuit = (data: { instanceId: string }) => {
-            if (data?.instanceId) {
-                closeWindow(data.instanceId);
-            }
-        };
-        globalEmitter.subscribe('app:quit', handleQuit);
-        return () => {
-            globalEmitter.unsubscribe('app:quit', handleQuit);
-        };
-    }, [closeWindow]);
-
-
-    const focusWindow = useCallback((id: string) => {
-        if (id === activeWindowId) return;
-        setActiveWindowId(id);
-        setNextZIndex(prev => {
-            const newZ = prev + 1;
-            setWindows(currentWindows =>
-                currentWindows.map(w => w.id === id ? { ...w, zIndex: newZ } : w)
-            );
-            return newZ;
-        });
     }, [activeWindowId]);
 
-    const splitWindow = useCallback((id: string, direction: 'left' | 'right') => {
-        if (!mainRef.current) return;
+    const handlePositionChange = useCallback((id: string, position: { x: number; y: number }) => {
+        let newPos = position;
+        if (theme.desktopMode === 'fixed') {
+            const win = windows.find(w => w.id === id);
+            if (win) {
+                newPos.x = Math.max(0, Math.min(position.x, window.innerWidth - win.size.width));
+                newPos.y = Math.max(0, Math.min(position.y, window.innerHeight - 24)); // 24px for menu bar
+            }
+        }
+        setWindows(prev => prev.map(w => (w.id === id ? { ...w, position: newPos } : w)));
+    }, [windows, theme.desktopMode]);
 
-        const mainEl = mainRef.current;
-        const viewportWidth = mainEl.clientWidth;
-        const viewportHeight = mainEl.clientHeight;
-        const scrollLeft = mainEl.scrollLeft;
-        const scrollTop = mainEl.scrollTop;
+    const handleSizeChange = useCallback((id: string, size: { width: number; height: number }) => {
+        setWindows(prev => prev.map(w => (w.id === id ? { ...w, size } : w)));
+    }, []);
 
-        const newWidth = viewportWidth / 2;
-        const newHeight = viewportHeight;
-        const newX = direction === 'left' ? scrollLeft : scrollLeft + newWidth;
-        const newY = scrollTop;
+    const minimizeWindow = useCallback((id: string) => {
+        setWindows(prev => prev.map(w => w.id === id ? { ...w, isMinimized: !w.isMinimized } : w));
+    }, []);
+    
+    const splitWindow = useCallback((id: string, direction: 'left' | 'right' | 'top' | 'bottom') => {
+        const { innerWidth, innerHeight } = window;
+        const menuBarHeight = 24;
+        const usableHeight = innerHeight - menuBarHeight;
 
-        setWindows(prev => prev.map(w => w.id === id ? { ...w, position: { x: newX, y: newY }, size: { width: newWidth, height: newHeight } } : w));
+        let newPos, newSize;
+
+        switch (direction) {
+            case 'left':
+                newPos = { x: 0, y: 0 };
+                newSize = { width: innerWidth / 2, height: usableHeight };
+                break;
+            case 'right':
+                newPos = { x: innerWidth / 2, y: 0 };
+                newSize = { width: innerWidth / 2, height: usableHeight };
+                break;
+            case 'top':
+                newPos = { x: 0, y: 0 };
+                newSize = { width: innerWidth, height: usableHeight / 2 };
+                break;
+            case 'bottom':
+                newPos = { x: 0, y: usableHeight / 2 };
+                newSize = { width: innerWidth, height: usableHeight / 2 };
+                break;
+        }
+
+        setWindows(prev => prev.map(w => (w.id === id ? { ...w, position: newPos, size: newSize, isMinimized: false } : w)));
         focusWindow(id);
     }, [focusWindow]);
 
-    const updateWindowPosition = useCallback((id: string, position: { x: number; y: number }) => {
-        const topConstraint = theme.uiMode === 'mac' ? 24 : 0;
-        const constrainedY = Math.max(topConstraint, position.y);
-        
-        setWindows(prev => prev.map(w => w.id === id ? { ...w, position: { x: position.x, y: constrainedY } } : w));
-    }, [theme.uiMode]);
-
-    const updateWindowSize = useCallback((id: string, size: { width: number, height: number }) => {
-        setWindows(prev => prev.map(w => w.id === id ? { ...w, size } : w));
-    }, []);
-
+    useEffect(() => {
+        const closeHandler = (data: { instanceId: string }) => closeWindow(data.instanceId);
+        globalEmitter.subscribe('app:quit', closeHandler);
+        return () => globalEmitter.unsubscribe('app:quit', closeHandler);
+    }, [closeWindow]);
+    
     const activeApp = useMemo(() => {
         const activeWindow = windows.find(w => w.id === activeWindowId);
         return activeWindow ? APPS.find(a => a.id === activeWindow.appId) || null : null;
     }, [activeWindowId, windows]);
     
+    useEffect(() => {
+        const colorScheme = getActiveColorScheme();
+        const font = getActiveFont();
+        Object.entries(colorScheme.colors).forEach(([key, value]) => {
+            document.documentElement.style.setProperty(key, value);
+        });
+        document.documentElement.style.setProperty('--main-font', font.fontFamily);
+        document.body.dataset.uimode = theme.uiMode;
+    }, [theme, getActiveColorScheme, getActiveFont]);
+
+    const appContextValue = useMemo(() => ({ openApp }), [openApp]);
+    
     return (
-        <AppContext.Provider value={{ openApp }}>
-            <div className="h-screen w-screen relative overflow-hidden">
-                <div className={`h-full w-full flex ${theme.uiMode === 'mac' ? 'flex-col' : 'flex-col-reverse'}`}>
-                    <Dock
-                        onAppClick={openApp}
-                        activeApp={activeApp}
-                        activeWindowId={activeWindowId}
-                        windows={windows}
-                        onWindowFocus={focusWindow}
-                        togglePinBoard={togglePinBoard}
-                    />
-                    <main ref={mainRef} className="flex-grow relative overflow-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-                        <div className="relative" style={{ width: '4000px', height: '3000px' }}>
-                            <Desktop />
-                            {windows.map(instance => {
-                                const app = APPS.find(a => a.id === instance.appId);
-                                if (!app) return null;
-                                return (
-                                    <Window
-                                        key={instance.id}
-                                        instance={instance}
-                                        app={app}
-                                        onClose={closeWindow}
-                                        onFocus={focusWindow}
-                                        onPositionChange={updateWindowPosition}
-                                        onSizeChange={updateWindowSize}
-                                        isActive={instance.id === activeWindowId}
-                                        onSplit={splitWindow}
-                                    />
-                                );
-                            })}
-                        </div>
-                    </main>
+         <AppContext.Provider value={appContextValue}>
+            <main ref={mainRef} id="os-container" data-desktop-mode={theme.desktopMode} className={`relative h-[200vh] w-[200vw] wallpaper-${theme.wallpaper} overflow-auto`}>
+                <Dock
+                    onAppClick={openApp}
+                    activeApp={activeApp}
+                    activeWindowId={activeWindowId}
+                    windows={windows}
+                    onWindowFocus={focusWindow}
+                    togglePinBoard={togglePinBoard}
+                />
+                <div className="relative w-full h-[calc(100%-24px)]">
+                    <Desktop />
+                    <PinBoard isOpen={isPinBoardOpen} onClose={togglePinBoard} />
+                    {windows.map(instance => {
+                        const app = APPS.find(a => a.id === instance.appId);
+                        if (!app) return null;
+                        return (
+                            <Window
+                                key={instance.id}
+                                instance={instance}
+                                app={app}
+                                onClose={closeWindow}
+                                onFocus={focusWindow}
+                                onPositionChange={handlePositionChange}
+                                onSizeChange={handleSizeChange}
+                                isActive={instance.id === activeWindowId}
+                                onMinimize={minimizeWindow}
+                                onSplit={splitWindow}
+                            />
+                        );
+                    })}
                 </div>
-                 <PinBoard isOpen={isPinBoardOpen} onClose={togglePinBoard} />
-            </div>
+            </main>
         </AppContext.Provider>
     );
-};
+}
 
-const App: React.FC = () => {
-  return (
+const App: React.FC = () => (
     <ThemeProvider>
         <FileSystemProvider>
             <DocumentProvider>
@@ -295,7 +259,6 @@ const App: React.FC = () => {
             </DocumentProvider>
         </FileSystemProvider>
     </ThemeProvider>
-  );
-};
+);
 
 export default App;

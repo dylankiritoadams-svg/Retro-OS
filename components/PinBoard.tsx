@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { usePinBoard } from '../PinBoardContext';
 import { useFileSystem } from '../FileSystemContext';
-import { useApp } from '../App';
+import { useApp } from '../types';
 import type { AnyPinBoardNode, VFSFile } from '../types';
 import { APPS, DocumentIcon } from '../constants';
 import { useDocuments } from '../DocumentContext';

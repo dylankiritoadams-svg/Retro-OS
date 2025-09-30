@@ -43,7 +43,7 @@ const generateInitialFileSystem = (): Record<string, VFSNode> => {
 
     // Define categories
     const gameAppIds = new Set(['brick-breaker', 'pong', 'tetris', 'pac-man', 'pixel-pegs', 'zurg-cabin', 'old-pc', 'motherload']);
-    const utilityAppIds = new Set(['calculator', 'clock', 'calendar', 'planner', 'tasks', 'finder', 'settings', 'stickies', 'media-player', 'mixtape', 'ireader']);
+    const utilityAppIds = new Set(['calculator', 'clock', 'calendar', 'planner', 'tasks', 'finder', 'settings', 'stickies', 'media-player', 'mixtape', 'ireader', 'retroboard']);
     const creativeAppsToKeep = new Set(['notebook', 'cards', 'macshop', 'macwrite', 'canvas', 'painter', 'campaign-weaver']);
 
     APPS.forEach(app => {

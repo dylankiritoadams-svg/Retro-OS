@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import type { AppDefinition, IconProps } from './types';
 import { Planner } from './components/apps/Planner';
@@ -31,6 +29,7 @@ import { CampaignWeaver } from './components/apps/CampaignWeaver';
 import { MediaPlayer } from './components/apps/MediaPlayer';
 import { MixTape } from './components/apps/MixTape';
 import { IReader } from './components/apps/IReader';
+import { RetroBoard } from './components/apps/RetroBoard';
 
 export const AppleIcon: React.FC<IconProps> = ({ className = "h-5 w-5" }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 20 16" shapeRendering="crispEdges" fill="currentColor">
@@ -59,6 +58,14 @@ export const DocumentIcon: React.FC<IconProps> = ({ className = "h-12 w-12" }) =
 export const PinBoardIcon: React.FC<IconProps> = ({ className = "h-5 w-5" }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 32 32" shapeRendering="crispEdges" fill="currentColor">
         <path d="M5 5h22v22H5z m1 1v20h20V6z m2 2h16v16H8z"/>
+    </svg>
+);
+
+const RetroBoardIcon: React.FC<IconProps> = ({ className = "h-10 w-10" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 32 32" shapeRendering="crispEdges" fill="currentColor">
+        <path d="M5 5h22v22H5z" fill="#000080"/>
+        <path d="M7 7h18v18H7z" fill="#000000"/>
+        <path d="M9 9h2v2H9zm4 0h10v2H13z m-4 4h2v2H9zm4 0h10v2H13z m-4 4h2v2H9zm4 0h10v2H13z" fill="#00ff00"/>
     </svg>
 );
 
@@ -207,6 +214,7 @@ const MixTapeIcon: React.FC<IconProps> = ({ className = "h-10 w-10" }) => (
 export const APPS: AppDefinition[] = [
     { id: 'finder', name: 'Finder', icon: <FinderIcon />, component: Finder, defaultSize: { width: 600, height: 400 } },
     { id: 'settings', name: 'System Settings', icon: <SettingsIcon />, component: SystemSettings, defaultSize: { width: 500, height: 550 } },
+    { id: 'retroboard', name: 'RetroBoard', icon: <RetroBoardIcon />, component: RetroBoard, defaultSize: { width: 700, height: 500 } },
     { id: 'planner', name: 'Planner', icon: <NewPlannerIcon />, component: Planner, defaultSize: { width: 900, height: 700 } },
     { id: 'tasks', name: 'Tasks', icon: <TasksIcon />, component: Tasks, defaultSize: { width: 600, height: 500 } },
     { id: 'task-details', name: 'Task Details', icon: <TasksIcon />, component: TaskDetails, defaultSize: { width: 400, height: 420 } },

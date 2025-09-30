@@ -1,6 +1,7 @@
+
 import React, { useRef } from 'react';
 import { useTheme } from '../../SettingsContext';
-import { Wallpaper } from '../../types';
+import { Wallpaper, DesktopMode } from '../../types';
 
 interface AppProps {
   isActive: boolean;
@@ -8,7 +9,7 @@ interface AppProps {
 }
 
 export const SystemSettings: React.FC<AppProps> = ({ isActive, instanceId }) => {
-    const { theme, setColorScheme, setFont, setWallpaper, colorSchemes, fonts } = useTheme();
+    const { theme, setColorScheme, setFont, setWallpaper, setDesktopMode, colorSchemes, fonts } = useTheme();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleExport = () => {
@@ -160,6 +161,33 @@ export const SystemSettings: React.FC<AppProps> = ({ isActive, instanceId }) => 
                             <span className="capitalize">{w}</span>
                         </label>
                     ))}
+                </div>
+            </div>
+
+            <div>
+                <h2 className="text-lg font-bold border-b-2 border-gray-400 pb-1 mb-2">Desktop Mode</h2>
+                <p className="text-sm mb-2">Control how the desktop space behaves.</p>
+                <div className="space-y-1">
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                            type="radio"
+                            name="desktopMode"
+                            value="scrolling"
+                            checked={theme.desktopMode === 'scrolling'}
+                            onChange={(e) => setDesktopMode(e.target.value as DesktopMode)}
+                        />
+                        <span>Scrolling (Large)</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                            type="radio"
+                            name="desktopMode"
+                            value="fixed"
+                            checked={theme.desktopMode === 'fixed'}
+                            onChange={(e) => setDesktopMode(e.target.value as DesktopMode)}
+                        />
+                        <span>Fixed (Fit to Screen)</span>
+                    </label>
                 </div>
             </div>
 

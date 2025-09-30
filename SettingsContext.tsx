@@ -1,5 +1,6 @@
+
 import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
-import type { ThemeSettings, ThemeContextType, ColorScheme, Font, Wallpaper, UIMode } from './types';
+import type { ThemeSettings, ThemeContextType, ColorScheme, Font, Wallpaper, UIMode, DesktopMode } from './types';
 import { COLOR_SCHEMES, FONTS } from './theme';
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -20,8 +21,12 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             const storedSettings = localStorage.getItem(THEME_SETTINGS_KEY);
             if (storedSettings) {
                 const parsed = JSON.parse(storedSettings);
-                // Ensure uiMode has a default value if loading old settings
-                return { ...parsed, uiMode: parsed.uiMode || 'mac' };
+                // Ensure new settings have default values if loading old state
+                return { 
+                    ...parsed, 
+                    uiMode: parsed.uiMode || 'mac',
+                    desktopMode: parsed.desktopMode || 'scrolling',
+                };
             }
         } catch (error) {
             console.error("Error loading theme settings from localStorage", error);
@@ -30,8 +35,9 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         return {
             colorSchemeId: 'classic-mac',
             fontId: 'chicago',
-            wallpaper: 'none', // Wallpaper is handled by body[data-uimode="mac"] style now
+            wallpaper: 'none',
             uiMode: 'mac',
+            desktopMode: 'scrolling',
         };
     });
 
@@ -63,6 +69,10 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setTheme(prev => ({ ...prev, uiMode: mode }));
     }, []);
 
+    const setDesktopMode = useCallback((mode: DesktopMode) => {
+        setTheme(prev => ({ ...prev, desktopMode: mode }));
+    }, []);
+
     const getActiveColorScheme = useCallback((): ColorScheme => {
         return COLOR_SCHEMES.find(cs => cs.id === theme.colorSchemeId) || COLOR_SCHEMES[0];
     }, [theme.colorSchemeId]);
@@ -77,6 +87,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setFont,
         setWallpaper,
         setUiMode,
+        setDesktopMode,
         colorSchemes: COLOR_SCHEMES,
         fonts: FONTS,
         getActiveColorScheme,

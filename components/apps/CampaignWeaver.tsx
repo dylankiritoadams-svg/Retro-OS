@@ -1,10 +1,13 @@
 
+
+
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useDocuments } from '../../DocumentContext';
 import * as gemini from '../../services/geminiService';
 import { globalEmitter } from '../../events';
 import { useFileSystem } from '../../FileSystemContext';
-import { useApp } from '../../App';
+import { useApp } from '../../types';
 import type {
     AppDocument,
     CampaignDocumentContent,
@@ -291,14 +294,14 @@ const BoardCanvas: React.FC<{ boardState: BoardState, setBoardState: React.Dispa
 
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
-        const entityType = (e.dataTransfer as any).getData('campaign/entity-type');
-        const entityId = (e.dataTransfer as any).getData('campaign/entity-id');
+        const entityType = e.dataTransfer.getData('campaign/entity-type');
+        const entityId = e.dataTransfer.getData('campaign/entity-id');
 
         if (!entityType || !entityId) return;
 
         const canvas = boardRef.current;
         if (!canvas) return;
-        const rect = (canvas as any).getBoundingClientRect();
+        const rect = canvas.getBoundingClientRect();
         const dropX = (e.clientX - rect.left) / boardState.viewport.zoom - boardState.viewport.x;
         const dropY = (e.clientY - rect.top) / boardState.viewport.zoom - boardState.viewport.y;
         
@@ -387,9 +390,9 @@ const BoardView: React.FC<{
     };
     
     const handleDragStart = (e: React.DragEvent, entityType: string, entityId: string, entityName: string) => {
-        (e.dataTransfer as any).setData('campaign/entity-type', entityType);
-        (e.dataTransfer as any).setData('campaign/entity-id', entityId);
-        (e.dataTransfer as any).setData('campaign/entity-name', entityName);
+        e.dataTransfer.setData('campaign/entity-type', entityType);
+        e.dataTransfer.setData('campaign/entity-id', entityId);
+        e.dataTransfer.setData('campaign/entity-name', entityName);
     };
 
     return (

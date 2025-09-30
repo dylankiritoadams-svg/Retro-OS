@@ -54,8 +54,8 @@ export const MacWrite: React.FC<MacWriteProps> = ({ isActive, instanceId, docume
         if (editorRef.current) {
             const newContent = activeDocument ? activeDocument.content : '';
             // Only update the DOM if it's different. This prevents wiping user input on other re-renders.
-            if ((editorRef.current as HTMLDivElement).innerHTML !== newContent) {
-                (editorRef.current as HTMLDivElement).innerHTML = newContent;
+            if (editorRef.current.innerHTML !== newContent) {
+                editorRef.current.innerHTML = newContent;
             }
         }
     }, [activeDocument]);
@@ -63,7 +63,7 @@ export const MacWrite: React.FC<MacWriteProps> = ({ isActive, instanceId, docume
 
     const executeCommand = useCallback((command: string, value: string | null = null) => {
         (document as any).execCommand(command, false, value);
-        (editorRef.current as HTMLDivElement)?.focus();
+        editorRef.current?.focus();
         setIsDirty(true);
     }, []);
 
@@ -78,7 +78,7 @@ export const MacWrite: React.FC<MacWriteProps> = ({ isActive, instanceId, docume
 
     const handleSave = useCallback(() => {
         if (!editorRef.current) return;
-        const currentContent = (editorRef.current as HTMLDivElement).innerHTML;
+        const currentContent = editorRef.current.innerHTML;
         
         if (activeDocument) {
             updateDocument(activeDocument.id, activeDocument.name, currentContent);
@@ -99,7 +99,7 @@ export const MacWrite: React.FC<MacWriteProps> = ({ isActive, instanceId, docume
 
     const confirmSaveAs = useCallback(() => {
         if (!saveAsName.trim() || !editorRef.current) return;
-        const newDoc = createDocument(saveAsName, (editorRef.current as HTMLDivElement).innerHTML, 'macwrite');
+        const newDoc = createDocument(saveAsName, editorRef.current.innerHTML, 'macwrite');
         
         const documentsFolder = findNodeByPath('/Documents');
         if(documentsFolder) {
@@ -174,7 +174,6 @@ export const MacWrite: React.FC<MacWriteProps> = ({ isActive, instanceId, docume
         };
     }, [isActive, instanceId, handleNew, handleOpen, handleSave, handleSaveAs, executeCommand]);
 
-    // FIX: Added the missing JSX return statement to complete the component.
     return (
         <div className="w-full h-full flex flex-col bg-white text-black macwrite-paper">
             <div
@@ -182,7 +181,7 @@ export const MacWrite: React.FC<MacWriteProps> = ({ isActive, instanceId, docume
                 contentEditable
                 suppressContentEditableWarning={true}
                 onInput={onInput}
-                className="flex-grow p-4 macwrite-editor"
+                className="flex-grow p-4 macwrite-editor focus:outline-none"
                 style={{ fontFamily: FONT_MAP.chicago }}
             />
             {isSaveAsModalOpen && (

@@ -14,7 +14,8 @@
     "@google/genai": "^1.13.0",
     "three": "^0.167.0",
     "date-fns": "^4.1.0",
-    "epubjs": "^0.3.93"
+    "epubjs": "^0.3.93",
+    "firebase": "^10.12.3"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

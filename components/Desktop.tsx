@@ -1,6 +1,8 @@
+
+
 import React from 'react';
 import { useFileSystem } from '../FileSystemContext';
-import { useApp } from '../App';
+import { useApp } from '../types';
 import type { VFSFile, VFSFolder, VFSNode } from '../types';
 import { APPS, FolderIcon } from '../constants';
 

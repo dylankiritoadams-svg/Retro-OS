@@ -1,6 +1,8 @@
+
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useFileSystem } from '../../FileSystemContext';
-import { useApp } from '../../App';
+import { useApp } from '../../types';
 import { VFSNode, VFSFolder, VFSFile } from '../../types';
 import { APPS } from '../../constants';
 
@@ -24,7 +26,6 @@ const FileIcon: React.FC<{ node: VFSFile }> = ({ node }) => {
 const FileItem: React.FC<{ node: VFSNode, onOpen: (node: VFSNode) => void }> = ({ node, onOpen }) => {
      const handleDragStart = (e: React.DragEvent) => {
         if (node.type === 'file') {
-            // FIX: Cast e.dataTransfer to `any` to access `setData`.
             e.dataTransfer.setData('application/vfs-node-id', node.id);
         } else {
             e.preventDefault();

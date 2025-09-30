@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { APPS, AppleIcon, WindowsIcon, PinBoardIcon } from '../constants';
+import { useApp } from '../types';
 import type { AppDefinition, MenuDefinition, VFSFile, WindowInstance } from '../types';
 import { globalEmitter } from '../events';
 import { useTheme } from '../SettingsContext';
-import { useApp } from '../App';
 import { useFileSystem } from '../FileSystemContext';
 
 interface DockProps {
@@ -71,6 +71,27 @@ const AppleMenu: React.FC<{ closeMenu: () => void }> = ({ closeMenu }) => {
     const { openApp } = useApp();
     const { findNodeByPath, getChildren } = useFileSystem();
     const [openSubMenu, setOpenSubMenu] = useState<string | null>(null);
+    const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+        closeMenu();
+    };
+
 
     const getAppsForFolder = useCallback((path: string): VFSFile[] => {
         const folder = findNodeByPath(path);
@@ -89,6 +110,10 @@ const AppleMenu: React.FC<{ closeMenu: () => void }> = ({ closeMenu }) => {
     return (
         <div className="classic-dropdown-menu">
             <button onClick={() => { openApp('settings'); closeMenu(); }}>System Settings...</button>
+            <hr />
+            <button onClick={toggleFullscreen}>
+                {isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+            </button>
             <hr />
             <div onMouseLeave={() => setOpenSubMenu(null)}>
                 {appCategories.map(category => {
