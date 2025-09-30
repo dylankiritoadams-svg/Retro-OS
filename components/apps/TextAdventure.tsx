@@ -17,7 +17,7 @@ export const TextAdventure: React.FC<AppProps> = ({ isActive, instanceId }) => {
     const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        logEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }, [chatLog, isLoading]);
     
     useEffect(() => {
