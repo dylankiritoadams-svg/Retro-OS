@@ -13,8 +13,11 @@ interface ImportMetaEnv {
   readonly VITE_FIREBASE_APP_ID: string;
 }
 
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
+// FIX: Wrap ImportMeta augmentation in `declare global` to correctly extend the global type from within a module.
+declare global {
+  interface ImportMeta {
+    readonly env: ImportMetaEnv;
+  }
 }
 
 // Make this file a module to allow global augmentations.

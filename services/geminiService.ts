@@ -14,11 +14,10 @@ const getAiInstance = (): GoogleGenAI => {
     }
 
     try {
-        // @FIX: Use process.env.API_KEY as per guidelines.
-        const apiKey = process.env.API_KEY;
+        const apiKey = import.meta.env.VITE_API_KEY;
         if (!apiKey) {
             // This is a common setup issue, so provide a clear error message.
-            throw new Error("Gemini API key not found. Please set the API_KEY environment variable in your Vercel project settings.");
+            throw new Error("Gemini API key not found. Please set the VITE_API_KEY environment variable in your Vercel project settings.");
         }
         ai = new GoogleGenAI({ apiKey });
         return ai;
@@ -181,7 +180,6 @@ Text: "${text}"`;
                                     },
                                     duration: {
                                         type: Type.INTEGER,
-                                        // @FIX: Corrected unterminated string in description
                                         description: "The duration of the task in minutes. Omit if not specified.",
                                     },
                                 },
@@ -191,7 +189,6 @@ Text: "${text}"`;
                 },
             },
         });
-        // @FIX: Added missing return statement
         return JSON.parse(response.text.trim());
     } catch (e: any) {
         console.error("Gemini API Error (generateTasksFromText):", e);
@@ -199,7 +196,6 @@ Text: "${text}"`;
     }
 };
 
-// @FIX: Implement and export missing function
 export const generateMacShopImage = async (prompt: string, width: number, height: number): Promise<string> => {
     try {
         const aiInstance = getAiInstance();
@@ -234,7 +230,6 @@ export const generateMacShopImage = async (prompt: string, width: number, height
     }
 };
 
-// @FIX: Implement and export missing function
 export const generateNpc = async (prompt: string): Promise<Partial<CampaignNpc>> => {
     const fullPrompt = `Generate a detailed TTRPG NPC based on the following concept: "${prompt}". Provide a name, a detailed description, and some secrets or motivations.`;
     try {
@@ -262,7 +257,6 @@ export const generateNpc = async (prompt: string): Promise<Partial<CampaignNpc>>
     }
 };
 
-// @FIX: Implement and export missing function
 export const generateLocation = async (prompt: string): Promise<Partial<CampaignLocation>> => {
     const fullPrompt = `Generate a detailed TTRPG location based on the following concept: "${prompt}". Provide a name and a rich description including sights, sounds, smells, and potential points of interest.`;
     try {
@@ -289,7 +283,6 @@ export const generateLocation = async (prompt: string): Promise<Partial<Campaign
     }
 };
 
-// @FIX: Implement and export missing function
 export const generateFaction = async (prompt: string): Promise<Partial<CampaignFaction>> => {
     const fullPrompt = `Generate a detailed TTRPG faction based on the following concept: "${prompt}". Provide a name, their primary goals, and the resources they command.`;
     try {
@@ -317,7 +310,6 @@ export const generateFaction = async (prompt: string): Promise<Partial<CampaignF
     }
 };
 
-// @FIX: Implement and export missing function
 export const generateItem = async (prompt: string): Promise<Partial<CampaignItem>> => {
     const fullPrompt = `Generate a detailed TTRPG item based on the following concept: "${prompt}". Provide a name, a physical description, and its magical or mundane properties.`;
     try {
@@ -345,7 +337,6 @@ export const generateItem = async (prompt: string): Promise<Partial<CampaignItem
     }
 };
 
-// @FIX: Implement and export missing function
 export const generateStoryArc = async (prompt: string): Promise<Partial<CampaignStoryArc>> => {
     const fullPrompt = `Generate a detailed TTRPG story arc based on the following concept: "${prompt}". Provide a name, a summary, a list of key events, linked lore, and a potential resolution.`;
     try {
@@ -375,7 +366,6 @@ export const generateStoryArc = async (prompt: string): Promise<Partial<Campaign
     }
 };
 
-// @FIX: Implement and export missing function
 export const generateSessionOutline = async (prompt: string): Promise<Partial<CampaignSession>> => {
     const fullPrompt = `Generate a TTRPG session outline based on the following concept: "${prompt}". Provide a name for the session, a summary, a list of planned events, and some relevant linked lore.`;
     try {

@@ -17,13 +17,12 @@ let initError: Error | null = null;
 
 try {
     const firebaseConfig = {
-        // @FIX: Use process.env to access environment variables.
-        apiKey: process.env.VITE_FIREBASE_API_KEY,
-        authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-        projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-        storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-        messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-        appId: process.env.VITE_FIREBASE_APP_ID,
+        apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+        authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+        projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+        storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+        appId: import.meta.env.VITE_FIREBASE_APP_ID,
     };
 
     const requiredKeys: (keyof typeof firebaseConfig)[] = [
@@ -38,7 +37,7 @@ try {
     const missingKeys = requiredKeys.filter(key => !firebaseConfig[key]);
 
     if (missingKeys.length > 0) {
-        throw new Error(`Firebase configuration is missing. Please set the following VITE_* environment variables in your Vercel project settings: ${missingKeys.join(', ')}`);
+        throw new Error(`Firebase configuration is missing. Please set the following VITE_FIREBASE_* environment variables in your Vercel project settings: ${missingKeys.join(', ')}`);
     }
 
     const app = initializeApp(firebaseConfig);
