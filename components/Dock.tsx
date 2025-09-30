@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { APPS, AppleIcon, WindowsIcon, PinBoardIcon } from '../constants';
-import { useApp } from '../types';
-import type { AppDefinition, MenuDefinition, VFSFile, WindowInstance } from '../types';
+import { useApp, IconProps } from '../types';
+import type { AppDefinition, MenuDefinition, VFSFile, WindowInstance, MenuItem, MenuSeparator } from '../types';
 import { globalEmitter } from '../events';
 import { useTheme } from '../SettingsContext';
 import { useFileSystem } from '../FileSystemContext';
@@ -41,23 +41,28 @@ const useTripleClick = (callback: () => void) => {
 const GlobalMenu: React.FC<{ menu: MenuDefinition, activeWindowId: string | null, closeMenu: () => void }> = ({ menu, activeWindowId, closeMenu }) => (
     <div className="classic-dropdown-menu">
         {menu.items.map((item, index) => {
+            // FIX: Check if item is an object before accessing properties, as it can be a string.
+            if (typeof item !== 'object') {
+                return null;
+            }
             if ('separator' in item && item.separator) {
                 return <hr key={`sep-${index}`} />
             }
             if ('label' in item) {
+                const menuItem = item as MenuItem;
                 return (
                     <button
-                        key={item.label}
+                        key={menuItem.label}
                         onMouseDown={(e) => {
                             e.preventDefault();
-                            if (!item.disabled) {
-                                globalEmitter.emit(item.event, { instanceId: activeWindowId });
+                            if (!menuItem.disabled) {
+                                globalEmitter.emit(menuItem.event, { instanceId: activeWindowId });
                                 closeMenu();
                             }
                         }}
-                        disabled={item.disabled}
+                        disabled={menuItem.disabled}
                     >
-                        {item.label}
+                        {menuItem.label}
                     </button>
                 );
             }
@@ -272,7 +277,8 @@ const WindowsTaskbar: React.FC<DockProps> = ({ onAppClick, windows, activeWindow
                  if (!app) return null;
                  return (
                      <button key={win.id} onClick={() => onWindowFocus(win.id)} className={`taskbar-window-btn ${win.id === activeWindowId ? 'active' : 'win95-border-outset'}`}>
-                         {React.cloneElement(app.icon, { className: "h-5 w-5" })}
+                         {/* FIX: Cast icon to a type that accepts className to satisfy React.cloneElement */}
+                         {React.cloneElement(app.icon as React.ReactElement<IconProps>, { className: "h-5 w-5" })}
                          <span>{app.name}</span>
                      </button>
                  );

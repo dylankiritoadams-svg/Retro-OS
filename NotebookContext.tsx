@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
 import type { NotebookNode, NotebookSection, NotebookPage, NotebookDrawingData, NotebookPageStyle, NotebookContextType, NotebookPageType } from './types';
 
@@ -108,108 +107,119 @@ export const NotebookProvider: React.FC<{ children: ReactNode }> = ({ children }
             
             const newNodes = { ...prevState.nodes };
             const nodeToDelete = newNodes[id];
-            if (!nodeToDelete) return prevState;
-
-            const parent = newNodes[nodeToDelete.parentId] as NotebookSection;
-            if (parent) {
-                const updatedParent = { ...parent, childrenIds: parent.childrenIds.filter(childId => childId !== id) };
-                newNodes[parent.id] = updatedParent;
+            // FIX: Ensure setState updater function returns the new state.
+            if (nodeToDelete && nodeToDelete.parentId && newNodes[nodeToDelete.parentId]) {
+                const parent = newNodes[nodeToDelete.parentId] as NotebookSection;
+                if (parent) {
+                    // FIX: Add type assertion to NotebookSection to resolve excess property checking error.
+                    newNodes[parent.id] = {
+                        ...parent,
+                        childrenIds: parent.childrenIds.filter(childId => childId !== id)
+                    } as NotebookSection;
+                }
             }
-
-            nodesToDelete.forEach(nodeId => delete newNodes[nodeId]);
-            
+    
+            nodesToDelete.forEach(deleteId => {
+                delete newNodes[deleteId];
+            });
+    
             return { ...prevState, nodes: newNodes };
         });
     }, [state.rootId]);
-    
+
     const updateNodeName = useCallback((id: string, name: string) => {
         setState(prevState => {
-            if (!prevState.nodes[id]) return prevState;
-            const newNodes = { ...prevState.nodes };
-            newNodes[id] = { ...newNodes[id], name };
-            return { ...prevState, nodes: newNodes };
+            const node = prevState.nodes[id];
+            if (node) {
+                const newNodes = { ...prevState.nodes, [id]: { ...node, name } };
+                return { ...prevState, nodes: newNodes };
+            }
+            return prevState;
         });
     }, []);
 
     const updatePageContent = useCallback((id: string, content: string | NotebookDrawingData) => {
         setState(prevState => {
             const node = prevState.nodes[id];
-            if (!node || node.type !== 'page') return prevState;
-            
-            const newNodes = { ...prevState.nodes };
-            const updatedPage = { ...node as NotebookPage, content };
-            
-            if (typeof content === 'string') {
-                const firstLine = content.split('\n')[0].trim();
-                updatedPage.name = firstLine || 'Untitled Page';
+            if (node?.type === 'page') {
+                const newNodes = { ...prevState.nodes, [id]: { ...node, content } };
+                return { ...prevState, nodes: newNodes };
             }
-
-            newNodes[id] = updatedPage;
-            return { ...prevState, nodes: newNodes };
+            return prevState;
         });
     }, []);
-    
+
     const updatePageStyle = useCallback((id: string, style: NotebookPageStyle) => {
         setState(prevState => {
-             const node = prevState.nodes[id];
-            if (!node || node.type !== 'page') return prevState;
-            const newNodes = { ...prevState.nodes };
-            newNodes[id] = { ...(node as NotebookPage), style };
-            return { ...prevState, nodes: newNodes };
+            const node = prevState.nodes[id];
+            if (node?.type === 'page') {
+                const newNodes = { ...prevState.nodes, [id]: { ...node, style } };
+                return { ...prevState, nodes: newNodes };
+            }
+            return prevState;
         });
     }, []);
-    
+
     const toggleSectionOpen = useCallback((id: string) => {
         setState(prevState => {
             const node = prevState.nodes[id];
-            if (!node || node.type !== 'section') return prevState;
-            const newNodes = { ...prevState.nodes };
-            const sectionNode = node as NotebookSection;
-            newNodes[id] = { ...sectionNode, isOpen: !sectionNode.isOpen };
-            return { ...prevState, nodes: newNodes };
+            if (node?.type === 'section') {
+                const newNodes = { ...prevState.nodes, [id]: { ...node, isOpen: !(node as NotebookSection).isOpen } };
+                return { ...prevState, nodes: newNodes };
+            }
+            return prevState;
         });
     }, []);
 
     const moveNode = useCallback((draggedId: string, dropTargetId: string) => {
         setState(prevState => {
-            const draggedNode = prevState.nodes[draggedId];
-            const dropTargetNode = prevState.nodes[dropTargetId];
-            if (!draggedNode || !dropTargetNode || draggedId === dropTargetId) return prevState;
-            
-            let current: NotebookNode | undefined = dropTargetNode;
-            while (current) {
-                if (current.id === draggedId) return prevState; // Prevent nesting inside self
-                current = prevState.nodes[current.parentId];
-            }
-            
             const newNodes = { ...prevState.nodes };
+            const draggedNode = newNodes[draggedId];
+            const dropTargetNode = newNodes[dropTargetId];
+            if (!draggedNode || !dropTargetNode || draggedId === dropTargetId) return prevState;
 
+            // Prevent dragging a parent into its child
+            let parentCheck = dropTargetNode;
+            while(parentCheck) {
+                if (parentCheck.id === draggedId) return prevState;
+                parentCheck = newNodes[parentCheck.parentId];
+            }
+
+            // Remove from old parent
             const oldParent = newNodes[draggedNode.parentId] as NotebookSection;
             if (oldParent) {
-                const updatedOldParent = { ...oldParent, childrenIds: oldParent.childrenIds.filter(id => id !== draggedId) };
-                newNodes[oldParent.id] = updatedOldParent;
+                // FIX: Add type assertion to NotebookSection to resolve excess property checking error.
+                newNodes[oldParent.id] = { ...oldParent, childrenIds: oldParent.childrenIds.filter(id => id !== draggedId) } as NotebookSection;
             }
 
-            let newParent: NotebookSection;
-            let dropIndex: number;
+            // Add to new parent
+            let newParentId: string;
+            let newChildrenIds: string[];
 
             if (dropTargetNode.type === 'section') {
-                newParent = { ...newNodes[dropTargetId] as NotebookSection };
-                dropIndex = newParent.childrenIds.length;
-                newParent.childrenIds.push(draggedId);
-            } else { 
-                newParent = { ...newNodes[dropTargetNode.parentId] as NotebookSection };
-                dropIndex = newParent.childrenIds.indexOf(dropTargetId);
-                newParent.childrenIds.splice(dropIndex, 0, draggedId);
+                newParentId = dropTargetId;
+                const newParent = newNodes[newParentId] as NotebookSection;
+                newChildrenIds = [...newParent.childrenIds, draggedId];
+            } else {
+                newParentId = dropTargetNode.parentId;
+                const newParent = newNodes[newParentId] as NotebookSection;
+                const dropIndex = newParent.childrenIds.indexOf(dropTargetId);
+                newChildrenIds = [...newParent.childrenIds];
+                newChildrenIds.splice(dropIndex + 1, 0, draggedId);
             }
-            newNodes[newParent.id] = newParent;
             
-            newNodes[draggedId] = { ...draggedNode, parentId: newParent.id };
-
+            const newParent = newNodes[newParentId] as NotebookSection;
+            if(newParent) {
+                 // FIX: Add type assertion to NotebookSection to resolve excess property checking error.
+                 newNodes[newParentId] = { ...newParent, childrenIds: newChildrenIds } as NotebookSection;
+                 newNodes[draggedId] = { ...draggedNode, parentId: newParentId };
+            }
+            
             return { ...prevState, nodes: newNodes };
         });
     }, []);
-
+    
+    // FIX: Provide a value for the context and return the provider component to fix component type error.
     const value: NotebookContextType = {
         nodes: state.nodes,
         rootId: state.rootId,

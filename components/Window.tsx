@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import type { WindowInstance, AppDefinition, MenuDefinition, MenuItem } from '../types';
+import type { WindowInstance, AppDefinition, MenuDefinition, MenuItem, MenuSeparator } from '../types';
 import { useTheme } from '../SettingsContext';
 import { globalEmitter } from '../events';
 
@@ -51,6 +50,8 @@ const Win95Menu: React.FC<{ menus: MenuDefinition[], instanceId: string }> = ({ 
                     {activeMenuTitle === menu.title && (
                         <div className="win95-dropdown-menu win95-border-outset">
                             {menu.items.map((item, index) => {
+                                // FIX: Check if item is an object, as it can be a string.
+                                if (typeof item !== 'object') return null;
                                 if ('separator' in item && item.separator) return <hr key={`sep-${index}`} />;
                                 const menuItem = item as MenuItem;
                                 return (

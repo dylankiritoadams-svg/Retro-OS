@@ -64,7 +64,12 @@ export const TaskDetails: React.FC<AppProps> = ({ taskId }) => {
             <div className="text-sm space-y-2">
                  <div>
                     <label className="font-bold block">Date & Time</label>
-                    <span>{format(parseISO(task.startTime), 'eee, MMM d, yyyy')} at {format(parseISO(task.startTime), 'p')}</span>
+                    <span>
+                        {task.startTime 
+                            ? `${format(parseISO(task.startTime), 'eee, MMM d, yyyy')} at ${format(parseISO(task.startTime), 'p')}`
+                            : 'Unscheduled'
+                        }
+                    </span>
                 </div>
                 <div>
                     <label htmlFor="task-duration" className="font-bold block">Duration (minutes)</label>

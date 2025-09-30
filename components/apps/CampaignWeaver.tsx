@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useDocuments } from '../../DocumentContext';
 import * as gemini from '../../services/geminiService';
@@ -477,7 +473,8 @@ export const CampaignWeaver: React.FC<{ instanceId: string, documentIdToOpen?: s
     };
 
     const handleAdd = (key: keyof CampaignDocumentContent) => {
-        const baseItem = { id: `${key}-${Date.now()}`, name: '' };
+        // FIX: Explicitly convert `key` to a string to prevent potential runtime errors with symbols.
+        const baseItem = { id: `${String(key)}-${Date.now()}`, name: '' };
         let newItem: CampaignEntity = baseItem;
 
         switch (key) {

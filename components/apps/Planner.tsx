@@ -1,343 +1,343 @@
-
-
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useTaskPlanner } from '../../TaskPlannerContext';
-import { Task, SubTask, Repeatable, RepeatableType, RepeatableFrequency } from '../../types';
+import { useApp } from '../../types';
+import type { Task } from '../../types';
 import {
     format,
     startOfWeek,
     addDays,
     startOfMonth,
     endOfMonth,
-    eachDayOfInterval,
-    isSameDay,
+    endOfWeek,
     isSameMonth,
-    getDay,
-    parseISO,
+    isSameDay,
+    addMonths,
+    subMonths,
+    addWeeks,
+    subWeeks,
+    parse,
+    getHours,
     setHours,
     setMinutes,
-    addMinutes,
-    differenceInMinutes
+    addHours,
+    parseISO,
 } from 'date-fns';
-import { useApp } from '../../types';
 
-interface AppProps {
-    isActive: boolean;
-    instanceId: string;
-}
+type PlannerView = 'month' | 'week' | 'day';
 
-const HOUR_HEIGHT = 48; // pixels per hour
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const TaskComponent: React.FC<{
+    task: Task;
+    onClick: () => void;
+    onResizeStart: (e: React.MouseEvent, taskId: string) => void;
+    view: PlannerView;
+}> = ({ task, onClick, onResizeStart, view }) => {
+    const startHour = task.startTime ? getHours(parseISO(task.startTime)) : 0;
+    const durationHours = task.duration / 60;
+    
+    const isVisible = view === 'month' || (task.startTime && startHour >= 0 && startHour < 24);
 
-// --- Sub-components ---
+    if (!isVisible) return null;
 
-const RepeatablesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-    const { repeatables, addRepeatable, updateRepeatable, deleteRepeatable } = useTaskPlanner();
-    const [newRepeatable, setNewRepeatable] = useState<Omit<Repeatable, 'id'>>({ title: '', type: 'Task', frequency: 'weekly', defaultDuration: 60, color: '#a2d2ff' });
-
-    const handleAdd = () => {
-        if (newRepeatable.title.trim()) {
-            addRepeatable(newRepeatable);
-            setNewRepeatable({ title: '', type: 'Task', frequency: 'weekly', defaultDuration: 60, color: '#a2d2ff' });
-        }
-    };
+    const top = view !== 'month' ? `${startHour * 60}px` : undefined;
+    const height = view !== 'month' ? `${durationHours * 60}px` : undefined;
 
     return (
-        <div className="absolute inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center" onMouseDown={(e) => e.stopPropagation()}>
-            <div className="w-[500px] bg-white border-2 border-black classic-window">
-                <div className="classic-title-bar classic-title-bar-active">
-                    <div className="classic-close-box" onMouseDown={onClose}></div>
-                    <h2 className="flex-grow text-center truncate">Manage Repeatables</h2>
-                </div>
-                <div className="p-4">
-                    <div className="max-h-64 overflow-y-auto mb-4 border-2 border-black p-2">
-                        {repeatables.map(r => (
-                            <div key={r.id} className="flex items-center justify-between p-1 border-b">
-                                <span>{r.title} ({r.frequency})</span>
-                                <button onClick={() => deleteRepeatable(r.id)} className="text-red-500 font-bold">X</button>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 p-2 border-2 border-black">
-                        <input type="text" placeholder="Title" value={newRepeatable.title} onChange={e => setNewRepeatable({...newRepeatable, title: e.target.value})} className="col-span-2 p-1 border-2 border-black" />
-                        <select value={newRepeatable.type} onChange={e => setNewRepeatable({...newRepeatable, type: e.target.value as RepeatableType})} className="p-1 border-2 border-black">
-                            <option>Task</option><option>Payment</option><option>Activity</option><option>Reminder</option>
-                        </select>
-                        <select value={newRepeatable.frequency} onChange={e => setNewRepeatable({...newRepeatable, frequency: e.target.value as RepeatableFrequency})} className="p-1 border-2 border-black">
-                            <option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option>
-                        </select>
-                        <input type="number" placeholder="Duration (mins)" value={newRepeatable.defaultDuration} onChange={e => setNewRepeatable({...newRepeatable, defaultDuration: parseInt(e.target.value) || 30})} className="p-1 border-2 border-black" />
-                        <input type="color" value={newRepeatable.color} onChange={e => setNewRepeatable({...newRepeatable, color: e.target.value})} className="p-1 border-2 border-black" />
-                        <button onClick={handleAdd} className="col-span-2 p-1 bg-white border-2 border-black active:bg-black active:text-white">Add Repeatable</button>
-                    </div>
-                </div>
-            </div>
+        <div
+            onClick={onClick}
+            className="absolute w-full p-1 rounded-sm overflow-hidden cursor-pointer"
+            style={{
+                top,
+                height,
+                backgroundColor: task.color || '#a2d2ff',
+                borderLeft: `3px solid ${task.isComplete ? '#4ade80' : (task.color || '#a2d2ff')}`,
+            }}
+        >
+            <p className="text-xs font-bold truncate">{task.title}</p>
+            {view !== 'month' && <p className="text-xs truncate">{task.duration} min</p>}
+            {view !== 'month' && (
+                 <div
+                    className="absolute bottom-0 left-0 w-full h-2 cursor-ns-resize"
+                    onMouseDown={(e) => {
+                        e.stopPropagation();
+                        onResizeStart(e, task.id);
+                    }}
+                />
+            )}
         </div>
     );
 };
 
 
-// --- The main Planner App ---
-
-export const Planner: React.FC<AppProps> = () => {
-    const { tasks, addTask, updateTask } = useTaskPlanner();
-    const { openApp } = useApp();
-    const [currentDate, setCurrentDate] = useState(new Date());
-    const [view, setView] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
+const DayColumn: React.FC<{
+    day: Date;
+    tasks: Task[];
+    onTaskClick: (taskId: string) => void;
+    onDoubleClick: (time: Date) => void;
+    onDrop: (time: Date, taskId: string) => void;
+    onResizeStart: (e: React.MouseEvent, taskId: string) => void;
+}> = ({ day, tasks, onTaskClick, onDoubleClick, onDrop, onResizeStart }) => {
+    const hours = Array.from({ length: 24 }, (_, i) => i);
+    const dayRef = useRef<HTMLDivElement>(null);
     
-    const [showRepeatables, setShowRepeatables] = useState(false);
-    
-    const [quickAddState, setQuickAddState] = useState<{ date: Date; top: number } | null>(null);
-    const [quickAddTitle, setQuickAddTitle] = useState('');
-
-    const [dragState, setDragState] = useState<{ id: string; startY: number; startMinutes: number; } | null>(null);
-    const [resizeState, setResizeState] = useState<{ id: string; startY: number; startDuration: number; } | null>(null);
-
-    const week = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
-    const month = useMemo(() => eachDayOfInterval({ start: startOfMonth(currentDate), end: endOfMonth(currentDate) }), [currentDate]);
-    const day = useMemo(() => currentDate, [currentDate]);
-    
-    const changeDate = (delta: number) => {
-        const newDate = new Date(currentDate);
-        if (view === 'weekly') newDate.setDate(newDate.getDate() + delta * 7);
-        else if (view === 'monthly') newDate.setMonth(newDate.getMonth() + delta);
-        else if (view === 'daily') newDate.setDate(newDate.getDate() + delta);
-        setCurrentDate(newDate);
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        const taskId = e.dataTransfer.getData('application/retro-os-task-id');
+        if (!taskId || !dayRef.current) return;
+        
+        const rect = dayRef.current.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const hour = Math.floor(y / 60);
+        const time = setMinutes(setHours(day, hour), 0);
+        
+        onDrop(time, taskId);
     };
-
-    const handleQuickAdd = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' && quickAddTitle.trim() && quickAddState) {
-            const minutesFromTop = (quickAddState.top / HOUR_HEIGHT) * 60;
-            const hour = Math.floor(minutesFromTop / 60);
-            const minute = minutesFromTop % 60;
-            const startTime = setMinutes(setHours(quickAddState.date, hour), minute);
-            
-            addTask({
-                title: quickAddTitle.trim(),
-                description: '',
-                subTasks: [],
-                startTime: startTime.toISOString(),
-                duration: 30, // Default duration for quick add
-            });
-            setQuickAddState(null);
-            setQuickAddTitle('');
-        }
-    };
-    
-    const handleDragStart = (e: React.MouseEvent, task: Task) => {
-        e.stopPropagation();
-        const startMinutes = parseISO(task.startTime).getHours() * 60 + parseISO(task.startTime).getMinutes();
-        setDragState({ id: task.id, startY: e.clientY, startMinutes });
-    };
-
-    const handleResizeStart = (e: React.MouseEvent, task: Task) => {
-        e.stopPropagation();
-        setResizeState({ id: task.id, startY: e.clientY, startDuration: task.duration });
-    };
-    
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (dragState) {
-            const dy = e.clientY - dragState.startY;
-            const minuteChange = Math.round((dy / HOUR_HEIGHT) * 60 / 15) * 15; // Snap to 15 mins
-            const task = tasks.find(t => t.id === dragState.id)!;
-            const newStartTime = addMinutes(parseISO(task.startTime), minuteChange + dragState.startMinutes - (parseISO(task.startTime).getHours() * 60 + parseISO(task.startTime).getMinutes()));
-            updateTask(dragState.id, { startTime: newStartTime.toISOString() });
-        }
-        if (resizeState) {
-            const dy = e.clientY - resizeState.startY;
-            const minuteChange = Math.round((dy / HOUR_HEIGHT) * 60 / 15) * 15;
-            const newDuration = Math.max(15, resizeState.startDuration + minuteChange);
-            updateTask(resizeState.id, { duration: newDuration });
-        }
-    };
-
-    const handleMouseUp = (e: React.MouseEvent, day?: Date) => {
-         if (dragState && day) {
-            const task = tasks.find(t => t.id === dragState.id)!;
-            const oldDate = parseISO(task.startTime);
-            const newDate = new Date(day);
-            newDate.setHours(oldDate.getHours(), oldDate.getMinutes(), oldDate.getSeconds(), oldDate.getMilliseconds());
-            updateTask(dragState.id, { startTime: newDate.toISOString() });
-        }
-        setDragState(null);
-        setResizeState(null);
-    };
-
-    const headerText = useMemo(() => {
-        if (view === 'weekly') return `${format(week, 'MMM yyyy')}`;
-        if (view === 'monthly') return format(currentDate, 'MMMM yyyy');
-        if (view === 'daily') return format(day, 'eeee, MMMM d, yyyy');
-        return '';
-    }, [view, currentDate, week, day]);
-
-    const renderWeeklyView = () => (
-        <div className="flex-grow grid grid-cols-[auto,1fr,1fr,1fr,1fr,1fr,1fr,1fr]">
-            {/* Time Column */}
-            <div className="text-right pr-2 text-xs">
-                {HOURS.map(hour => (
-                    <div key={hour} style={{ height: `${HOUR_HEIGHT}px` }} className="relative -top-2 border-r border-gray-300">
-                        {hour > 0 && `${hour % 12 || 12}${hour < 12 ? 'a' : 'p'}`}
-                    </div>
-                ))}
-            </div>
-            {/* Day Columns */}
-            {Array.from({ length: 7 }).map((_, i) => {
-                const currentDay = addDays(week, i);
-                return (
-                    <div
-                        key={i}
-                        className="border-r border-gray-300 relative"
-                        onMouseUp={(e) => handleMouseUp(e, currentDay)}
-                        onDoubleClick={(e) => {
-                            if (quickAddState || dragState || resizeState) return;
-                             const target = e.target as HTMLElement;
-                            if (target.closest('[data-task-id]')) {
-                                return;
-                            }
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            const top = e.clientY - rect.top;
-                            setQuickAddState({ date: currentDay, top });
-                        }}
-                    >
-                        {HOURS.map(hour => (
-                            <div key={hour} style={{ height: `${HOUR_HEIGHT}px` }} className="border-b border-gray-300" />
-                        ))}
-                        {tasks.filter(task => isSameDay(parseISO(task.startTime), currentDay)).map(task => {
-                            const taskDate = parseISO(task.startTime);
-                            const top = (taskDate.getHours() + taskDate.getMinutes() / 60) * HOUR_HEIGHT;
-                            const height = (task.duration / 60) * HOUR_HEIGHT;
-                            return (
-                                <div
-                                    key={task.id}
-                                    data-task-id={task.id}
-                                    className="absolute left-1 right-1 p-1 text-xs overflow-hidden classic-window"
-                                    style={{ top: `${top}px`, height: `${height}px`, backgroundColor: task.color }}
-                                    onDoubleClick={(e) => {
-                                        e.stopPropagation();
-                                        openApp('task-details', { taskId: task.id });
-                                    }}
-                                    onMouseDown={(e) => e.stopPropagation()}
-                                >
-                                    <div className="w-full h-4 bg-white bg-opacity-50 cursor-move classic-title-bar-active" onMouseDown={e => handleDragStart(e, task)}>
-                                        <p className="font-bold truncate">{task.title}</p>
-                                    </div>
-                                    <p className="pt-1">{task.description}</p>
-                                    <div className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize classic-resize-handle" onMouseDown={e => handleResizeStart(e, task)}></div>
-                                </div>
-                            );
-                        })}
-                        {quickAddState && isSameDay(quickAddState.date, currentDay) && (
-                            <div className="absolute left-1 right-1" style={{ top: `${quickAddState.top}px` }}>
-                                <input
-                                    type="text"
-                                    autoFocus
-                                    value={quickAddTitle}
-                                    onChange={(e) => setQuickAddTitle(e.target.value)}
-                                    onKeyDown={handleQuickAdd}
-                                    onBlur={() => { setQuickAddState(null); setQuickAddTitle(''); }}
-                                    className="w-full text-xs p-1 border-2 border-black bg-white"
-                                />
-                            </div>
-                        )}
-                    </div>
-                );
-            })}
-        </div>
-    );
-    
-    const renderDailyView = () => (
-         <div className="flex-grow grid grid-cols-[auto,1fr]">
-            {/* Time Column */}
-            <div className="text-right pr-2 text-xs">
-                {HOURS.map(hour => (
-                    <div key={hour} style={{ height: `${HOUR_HEIGHT*2}px` }} className="relative -top-2 border-r border-gray-300">
-                        {hour > 0 && `${hour % 12 || 12}${hour < 12 ? 'a' : 'p'}`}
-                    </div>
-                ))}
-            </div>
-            {/* Day Column */}
-            <div className="border-r border-gray-300 relative">
-                {HOURS.map(hour => (
-                    <div key={hour} style={{ height: `${HOUR_HEIGHT*2}px` }} className="border-b border-gray-300" />
-                ))}
-                {tasks.filter(task => isSameDay(parseISO(task.startTime), day)).map(task => {
-                    const taskDate = parseISO(task.startTime);
-                    const top = (taskDate.getHours() + taskDate.getMinutes() / 60) * HOUR_HEIGHT*2;
-                    const height = (task.duration / 60) * HOUR_HEIGHT*2;
-                    return (
-                        <div key={task.id} className="absolute left-1 right-1 p-1 text-xs overflow-hidden classic-window" style={{ top: `${top}px`, height: `${height}px`, backgroundColor: task.color }} onDoubleClick={() => openApp('task-details', { taskId: task.id })}>
-                            <p className="font-bold">{task.title}</p>
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
-
-    const renderMonthlyView = () => (
-        <div className="flex-grow grid grid-cols-7 grid-rows-6">
-            {month.map(day => {
-                const isCurrent = isSameMonth(day, currentDate);
-                return (
-                    <div key={day.toISOString()} className={`border border-black p-1 ${isCurrent ? 'bg-white' : 'bg-gray-300'}`} onClick={() => { setCurrentDate(day); setView('daily'); }}>
-                        <span className={`text-sm ${isSameDay(day, new Date()) ? 'bg-black text-white rounded-full px-1' : ''}`}>{format(day, 'd')}</span>
-                        <div className="text-xs overflow-hidden h-12">
-                            {tasks.filter(task => isSameDay(parseISO(task.startTime), day)).map(task => (
-                                <div key={task.id} className="truncate" style={{backgroundColor: task.color}}>{task.title}</div>
-                            ))}
-                        </div>
-                    </div>
-                );
-            })}
-        </div>
-    );
 
     return (
-        <div className="w-full h-full flex flex-col bg-white text-black font-mono select-none" onMouseMove={handleMouseMove} onMouseUp={(e) => handleMouseUp(e)}>
-            {showRepeatables && <RepeatablesModal onClose={() => setShowRepeatables(false)} />}
-            
-            <header className="flex-shrink-0 p-1 border-b-2 border-black flex justify-between items-center">
-                <div className="flex items-center">
-                    <button onClick={() => changeDate(-1)} className="p-1 border-2 border-black active:bg-black active:text-white">◀</button>
-                    <button onClick={() => setCurrentDate(new Date())} className="p-1 border-y-2 border-black active:bg-black active:text-white">Today</button>
-                    <button onClick={() => changeDate(1)} className="p-1 border-2 border-black active:bg-black active:text-white">▶</button>
-                    <h2 className="font-bold text-lg ml-4">{headerText}</h2>
-                </div>
-                <div className="flex items-center">
-                    <button onClick={() => setShowRepeatables(true)} className="p-1 border-2 border-black active:bg-black active:text-white text-sm">Repeatables</button>
-                    <div className="mx-2 w-px h-5 bg-black"></div>
-                    <button onClick={() => setView('daily')} className={`p-1 border-2 border-black text-sm ${view === 'daily' ? 'bg-black text-white' : ''}`}>Day</button>
-                    <button onClick={() => setView('weekly')} className={`p-1 border-y-2 border-r-2 border-black text-sm ${view === 'weekly' ? 'bg-black text-white' : ''}`}>Week</button>
-                    <button onClick={() => setView('monthly')} className={`p-1 border-y-2 border-r-2 border-black text-sm ${view === 'monthly' ? 'bg-black text-white' : ''}`}>Month</button>
-                </div>
-            </header>
-            
-            {view === 'weekly' && (
-                <div className="flex-grow flex flex-col min-h-0">
-                    <div className="grid grid-cols-[auto,1fr,1fr,1fr,1fr,1fr,1fr,1fr] sticky top-0 bg-white z-10 border-b-2 border-black">
-                        <div className="w-16"></div>
-                        {Array.from({ length: 7 }).map((_, i) => (
-                            <div key={i} className="text-center font-bold p-1 border-r">
-                                {format(addDays(week, i), 'eee d')}
-                            </div>
-                        ))}
+        <div
+            ref={dayRef}
+            className="relative"
+            onDoubleClick={(e) => {
+                if (!dayRef.current) return;
+                const rect = dayRef.current.getBoundingClientRect();
+                const y = e.clientY - rect.top;
+                const hour = Math.floor(y / 60);
+                onDoubleClick(setMinutes(setHours(day, hour), 0));
+            }}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleDrop}
+        >
+            {hours.map(hour => (
+                <div key={hour} className="h-[60px] border-b border-gray-200" />
+            ))}
+            {tasks.map(task => (
+                <TaskComponent
+                    key={task.id}
+                    task={task}
+                    onClick={() => onTaskClick(task.id)}
+                    onResizeStart={onResizeStart}
+                    view="week"
+                />
+            ))}
+        </div>
+    );
+};
+
+const Header: React.FC<{ view: PlannerView; currentMonth: Date; onPrev: () => void; onNext: () => void; onSetView: (view: PlannerView) => void; onToggleSidebar: () => void; }> = ({ view, currentMonth, onPrev, onNext, onSetView, onToggleSidebar }) => (
+    <header className="flex-shrink-0 p-2 border-b-2 border-black flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+            <button onClick={onToggleSidebar} className="px-2 py-1 bg-white border-2 border-black active:bg-gray-200 text-sm">Tasks</button>
+            <button onClick={onPrev} className="px-3 py-1 bg-white border-2 border-black active:bg-gray-200">‹</button>
+            <h2 className="text-lg font-bold w-48 text-center">{format(currentMonth, "MMMM yyyy")}</h2>
+            <button onClick={onNext} className="px-3 py-1 bg-white border-2 border-black active:bg-gray-200">›</button>
+        </div>
+        <div className="flex items-center space-x-1">
+            {['month', 'week', 'day'].map(v => (
+                <button key={v} onClick={() => onSetView(v as PlannerView)} className={`px-3 py-1 text-sm border-2 border-black ${view === v ? 'bg-black text-white' : 'bg-white'}`}>
+                    {v.charAt(0).toUpperCase() + v.slice(1)}
+                </button>
+            ))}
+        </div>
+    </header>
+);
+
+export const Planner: React.FC = () => {
+    const { tasks, addTask, updateTask } = useTaskPlanner();
+    const { openApp } = useApp();
+
+    const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [view, setView] = useState<PlannerView>('month');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    
+    const [resizingTask, setResizingTask] = useState<{ id: string, startY: number, startDuration: number } | null>(null);
+
+    const handleNext = () => view === 'month' ? setCurrentMonth(addMonths(currentMonth, 1)) : view === 'week' ? setCurrentMonth(addWeeks(currentMonth, 1)) : setCurrentMonth(addDays(currentMonth, 1));
+    const handlePrev = () => view === 'month' ? setCurrentMonth(subMonths(currentMonth, 1)) : view === 'week' ? setCurrentMonth(subWeeks(currentMonth, 1)) : setCurrentMonth(addDays(currentMonth, -1));
+
+    const openTaskDetails = (taskId: string) => openApp('task-details', { taskId });
+
+    const handleCreateTask = useCallback((time: Date) => {
+        const newTask = addTask({
+            title: 'New Event',
+            startTime: time.toISOString(),
+            duration: 60,
+            subTasks: [],
+        });
+        openTaskDetails(newTask.id);
+    }, [addTask, openApp]);
+
+    const handleDrop = useCallback((time: Date, taskId: string) => {
+        updateTask(taskId, { startTime: time.toISOString() });
+    }, [updateTask]);
+    
+    const handleResizeStart = useCallback((e: React.MouseEvent, taskId: string) => {
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) return;
+        setResizingTask({
+            id: taskId,
+            startY: e.clientY,
+            startDuration: task.duration,
+        });
+    }, [tasks]);
+
+    const handleMouseMove = useCallback((e: React.MouseEvent) => {
+        if (!resizingTask) return;
+        const dy = e.clientY - resizingTask.startY;
+        const minutesPerPixel = 1; // 60px height for 60 minutes
+        const durationChange = dy * minutesPerPixel;
+        const newDuration = Math.max(15, Math.round((resizingTask.startDuration + durationChange) / 15) * 15); // Snap to 15 mins
+        updateTask(resizingTask.id, { duration: newDuration });
+    }, [resizingTask, updateTask]);
+    
+    const handleMouseUp = useCallback(() => {
+        setResizingTask(null);
+    }, []);
+
+    const unscheduledTasks = useMemo(() => tasks.filter(t => !t.startTime), [tasks]);
+    
+    const renderMonthView = () => {
+        const monthStart = startOfMonth(currentMonth);
+        const monthEnd = endOfMonth(monthStart);
+        const startDate = startOfWeek(monthStart);
+        const endDate = endOfWeek(monthEnd);
+
+        const rows = [];
+        let days = [];
+        let day = startDate;
+        
+        while (day <= endDate) {
+            for (let i = 0; i < 7; i++) {
+                const cloneDay = day;
+                const tasksForDay = tasks.filter(t => t.startTime && isSameDay(parseISO(t.startTime), cloneDay));
+                days.push(
+                    <div
+                        key={day.toString()}
+                        className={`p-1 border border-gray-200 flex-1 min-h-[120px] ${isSameMonth(day, monthStart) ? '' : 'bg-gray-100'}`}
+                        onDoubleClick={() => handleCreateTask(addHours(cloneDay, 9))}
+                        onDragOver={e => e.preventDefault()}
+                        onDrop={e => {
+                            e.preventDefault();
+                            const taskId = e.dataTransfer.getData('application/retro-os-task-id');
+                            if(taskId) handleDrop(addHours(cloneDay, 9), taskId);
+                        }}
+                    >
+                        <span className={`text-sm ${isSameDay(day, new Date()) ? 'bg-black text-white rounded-full px-1' : ''}`}>{format(day, 'd')}</span>
+                        <div className="mt-1 space-y-1 relative h-full">
+                             {tasksForDay.map(task => <TaskComponent key={task.id} task={task} onClick={() => openTaskDetails(task.id)} onResizeStart={()=>{}} view="month"/>)}
+                        </div>
                     </div>
-                    <div className="flex-grow overflow-y-auto">
-                        {renderWeeklyView()}
-                    </div>
+                );
+                day = addDays(day, 1);
+            }
+            rows.push(<div key={day.toString()} className="flex">{days}</div>);
+            days = [];
+        }
+
+        return (
+            <div className="flex-grow flex flex-col">
+                <div className="grid grid-cols-7 text-center font-bold border-b-2 border-black">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} className="p-2">{d}</div>)}
                 </div>
-            )}
-             {view === 'daily' && renderDailyView()}
-             {view === 'monthly' && (
-                <div className="flex-grow flex flex-col min-h-0">
-                    <div className="grid grid-cols-7 sticky top-0 bg-white z-10 border-b-2 border-black">
-                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                            <div key={day} className="text-center font-bold p-1 border-r">{day}</div>
-                        ))}
-                    </div>
-                    {renderMonthlyView()}
+                <div className="flex-grow flex flex-col overflow-y-auto">{rows}</div>
+            </div>
+        );
+    };
+
+    const renderWeekView = () => {
+        const weekStart = startOfWeek(currentMonth);
+        const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+        return (
+            <div className="flex-grow flex overflow-auto min-w-0">
+                {/* Time Column (sticky) */}
+                <div className="w-[60px] flex-shrink-0 sticky left-0 z-20 bg-white border-r">
+                    <div className="sticky top-0 z-10 bg-white border-b-2 border-black" style={{ height: '41px' }} />
+                    {Array.from({ length: 24 }, (_, i) => (
+                        <div key={i} className="h-[60px] text-xs text-right pr-2 border-b border-gray-200 pt-1">
+                            {format(new Date(0, 0, 0, i), 'ha')}
+                        </div>
+                    ))}
                 </div>
-            )}
+                
+                {/* All Day Columns */}
+                {days.map(day => (
+                    <div key={day.toISOString()} className="flex flex-col border-r border-gray-200" style={{ minWidth: '150px' }}>
+                        {/* Header for this column (sticky) */}
+                        <div className="sticky top-0 z-10 bg-white p-2 border-b-2 border-black text-center font-bold">
+                            {format(day, 'ccc d')}
+                        </div>
+                        {/* The rest of the column */}
+                        <DayColumn
+                            day={day}
+                            tasks={tasks.filter(t => t.startTime && isSameDay(parseISO(t.startTime), day))}
+                            onTaskClick={openTaskDetails}
+                            onDoubleClick={handleCreateTask}
+                            onDrop={handleDrop}
+                            onResizeStart={handleResizeStart}
+                        />
+                    </div>
+                ))}
+            </div>
+        );
+    };
+    
+    const renderDayView = () => {
+        const day = currentMonth;
+        return (
+            <div className="flex-grow flex overflow-auto min-w-0">
+                {/* Time Column (sticky) */}
+                <div className="w-[60px] flex-shrink-0 sticky left-0 z-20 bg-white border-r">
+                    <div className="sticky top-0 z-10 bg-white border-b-2 border-black" style={{ height: '41px' }} />
+                    {Array.from({ length: 24 }, (_, i) => (
+                        <div key={i} className="h-[60px] text-xs text-right pr-2 border-b border-gray-200 pt-1">
+                            {format(new Date(0, 0, 0, i), 'ha')}
+                        </div>
+                    ))}
+                </div>
+                
+                {/* Day Column */}
+                <div className="flex flex-col border-r border-gray-200 flex-grow" style={{ minWidth: '150px' }}>
+                    {/* Header (sticky) */}
+                    <div className="sticky top-0 z-10 bg-white p-2 border-b-2 border-black text-center font-bold">
+                        {format(day, 'ccc d')}
+                    </div>
+                    {/* The rest of the column */}
+                    <DayColumn
+                        day={day}
+                        tasks={tasks.filter(t => t.startTime && isSameDay(parseISO(t.startTime), day))}
+                        onTaskClick={openTaskDetails}
+                        onDoubleClick={handleCreateTask}
+                        onDrop={handleDrop}
+                        onResizeStart={handleResizeStart}
+                    />
+                </div>
+            </div>
+        );
+    };
+
+
+    return (
+        <div className="w-full h-full flex flex-col bg-white text-black" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
+            <Header view={view} currentMonth={currentMonth} onPrev={handlePrev} onNext={handleNext} onSetView={setView} onToggleSidebar={() => setIsSidebarOpen(p => !p)} />
+            <main className="flex-grow flex overflow-hidden min-w-0">
+                {isSidebarOpen && (
+                    <div className="w-64 flex-shrink-0 border-r-2 border-black flex flex-col">
+                        <h3 className="p-2 font-bold text-center border-b-2 border-black">Unscheduled Tasks</h3>
+                        <div className="flex-grow overflow-y-auto p-2">
+                            {unscheduledTasks.map(task => (
+                                <div key={task.id} draggable onDragStart={e => e.dataTransfer.setData('application/retro-os-task-id', task.id)} className="p-2 bg-gray-100 border border-gray-300 mb-2 cursor-grab">
+                                    <p className="text-sm font-bold">{task.title}</p>
+                                </div>
+                            ))}
+                            {unscheduledTasks.length === 0 && <p className="text-xs text-center text-gray-500 italic">No unscheduled tasks.</p>}
+                        </div>
+                    </div>
+                )}
+                <div className="flex-grow flex flex-col overflow-hidden min-w-0">
+                    {view === 'month' && renderMonthView()}
+                    {view === 'week' && renderWeekView()}
+                    {view === 'day' && renderDayView()}
+                </div>
+            </main>
         </div>
     );
 };

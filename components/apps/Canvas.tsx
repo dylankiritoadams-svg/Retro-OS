@@ -2,7 +2,8 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useCards } from '../../CardContext';
 import { GLASS_HUES } from '../../theme';
 import { useApp } from '../../types';
-import type { CanvasLayer, CanvasTool, CanvasCardElement, CanvasBoxElement, CanvasLineElement, AppDocument, CanvasElement } from '../../types';
+// FIX: Remove unused `CanvasElement` base type and use specific element types in a union.
+import type { CanvasLayer, CanvasTool, CanvasCardElement, CanvasBoxElement, CanvasLineElement, AppDocument } from '../../types';
 import { globalEmitter } from '../../events';
 import { useDocuments } from '../../DocumentContext';
 import { useFileSystem } from '../../FileSystemContext';
@@ -32,7 +33,8 @@ export const Canvas: React.FC<AppProps> = ({ isActive, instanceId, documentIdToO
     const { findNodeByPath, createFile } = useFileSystem();
     const { openApp } = useApp();
 
-    const [elements, setElements] = useState<CanvasElement[]>([]);
+    // FIX: Use a union type for elements to allow access to type-specific properties.
+    const [elements, setElements] = useState<(CanvasCardElement | CanvasBoxElement | CanvasLineElement)[]>([]);
     const [layers, setLayers] = useState<CanvasLayer[]>([{ id: 'layer-1', name: 'Layer 1', isVisible: true }]);
     const [activeLayerId, setActiveLayerId] = useState('layer-1');
     const [activeTool, setActiveTool] = useState<CanvasTool>('select');
@@ -489,12 +491,14 @@ export const Canvas: React.FC<AppProps> = ({ isActive, instanceId, documentIdToO
                         {selectedElement?.type === 'box' && (
                             <div className="space-y-2">
                                 <label className="flex items-center space-x-2 text-sm">
-                                    <input type="checkbox" checked={(selectedElement as CanvasBoxElement).isGlass || false} onChange={e => updateElementProperty(selectedElementId!, 'isGlass', (e.target as HTMLInputElement).checked)} />
+                                    {/* FIX: Remove redundant cast, type narrowing is sufficient */}
+                                    <input type="checkbox" checked={selectedElement.isGlass || false} onChange={e => updateElementProperty(selectedElementId!, 'isGlass', (e.target as HTMLInputElement).checked)} />
                                     <span>Make Glass</span>
                                 </label>
                                 <div>
                                     <label className="text-xs font-bold">BG Color</label>
-                                    <input type="color" value={(selectedElement as CanvasBoxElement).backgroundColor} onChange={e => updateElementProperty(selectedElementId!, 'backgroundColor', e.target.value)} className="w-full h-6 p-0"/>
+                                    {/* FIX: Remove redundant cast, type narrowing is sufficient */}
+                                    <input type="color" value={selectedElement.backgroundColor} onChange={e => updateElementProperty(selectedElementId!, 'backgroundColor', e.target.value)} className="w-full h-6 p-0"/>
                                 </div>
                             </div>
                         )}

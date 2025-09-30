@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
-import type { Task, SubTask, Repeatable, TaskPlannerContextType } from './types';
+import type { Task, SubTask, TaskPlannerContextType } from './types';
 
 const TaskPlannerContext = createContext<TaskPlannerContextType | undefined>(undefined);
 
@@ -11,134 +11,77 @@ export const useTaskPlanner = (): TaskPlannerContextType => {
     return context;
 };
 
-const TASK_PLANNER_STORAGE_KEY = 'retro_os_task_planner_state';
-
-interface TaskPlannerState {
-    tasks: Task[];
-    repeatables: Repeatable[];
-}
+const STORAGE_KEY = 'retro_os_task_planner_state';
 
 export const TaskPlannerProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [state, setState] = useState<TaskPlannerState>(() => {
+    const [tasks, setTasks] = useState<Task[]>(() => {
         try {
-            const storedState = localStorage.getItem(TASK_PLANNER_STORAGE_KEY);
-            return storedState ? JSON.parse(storedState) : { tasks: [], repeatables: [] };
-        } catch (error) {
-            console.error("Error loading task planner state from localStorage", error);
-            return { tasks: [], repeatables: [] };
+            const stored = localStorage.getItem(STORAGE_KEY);
+            return stored ? JSON.parse(stored) : [];
+        } catch {
+            return [];
         }
     });
 
     useEffect(() => {
         try {
-            localStorage.setItem(TASK_PLANNER_STORAGE_KEY, JSON.stringify(state));
-        } catch (error) {
-            console.error("Error saving task planner state to localStorage", error);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+        } catch (e) {
+            console.error("Failed to save tasks state:", e);
         }
-    }, [state]);
+    }, [tasks]);
 
     const getTask = useCallback((id: string) => {
-        return state.tasks.find(t => t.id === id);
-    }, [state.tasks]);
+        return tasks.find(t => t.id === id);
+    }, [tasks]);
 
-    const addTask = useCallback((taskData: Omit<Task, 'id' | 'isComplete'>) => {
-        const defaults = {
-            description: '',
-            subTasks: [],
-            isComplete: false,
-            color: '#a2d2ff',
-        };
+    const addTask = useCallback((taskData: Omit<Task, 'id' | 'isComplete'>): Task => {
         const newTask: Task = {
-            ...defaults,
-            ...taskData,
-            id: `task-${Date.now()}-${Math.random()}`,
+            id: `task-${Date.now()}`,
+            isComplete: false,
+            ...taskData
         };
-        setState(prev => ({ ...prev, tasks: [...prev.tasks, newTask] }));
+        setTasks(prev => [...prev, newTask]);
+        return newTask;
     }, []);
 
     const updateTask = useCallback((id: string, updates: Partial<Task>) => {
-        setState(prev => ({
-            ...prev,
-            tasks: prev.tasks.map(task =>
-                task.id === id ? { ...task, ...updates } : task
-            ),
-        }));
+        setTasks(prev => prev.map(t => (t.id === id ? { ...t, ...updates } : t)));
     }, []);
 
     const deleteTask = useCallback((id: string) => {
-        setState(prev => ({
-            ...prev,
-            tasks: prev.tasks.filter(task => task.id !== id),
-        }));
+        setTasks(prev => prev.filter(t => t.id !== id));
     }, []);
     
     const promoteSubTask = useCallback((taskId: string, subTaskId: string) => {
-        setState(prev => {
-            const task = prev.tasks.find(t => t.id === taskId);
-            if (!task) return prev;
-            const subTask = task.subTasks.find(st => st.id === subTaskId);
-            if (!subTask) return prev;
-            
-            const newTasks = [...prev.tasks];
-            
-            // Create new task from subtask first
-            const promotedTask: Task = {
-                id: `task-${Date.now()}-${Math.random()}`,
-                title: subTask.text,
-                description: `Promoted from sub-task of "${task.title}"`,
-                isComplete: subTask.isComplete,
-                subTasks: [],
-                startTime: task.startTime, // Inherit start time
-                duration: 30, // Default duration
-            };
-            newTasks.push(promotedTask);
-            
-            // Then, remove subtask from original task
-            const originalTaskIndex = newTasks.findIndex(t => t.id === taskId);
-            newTasks[originalTaskIndex] = {
-                ...task,
-                subTasks: task.subTasks.filter(st => st.id !== subTaskId),
-            };
-            
-            return { ...prev, tasks: newTasks };
+        const task = getTask(taskId);
+        if (!task) return;
+
+        const subTask = task.subTasks.find(st => st.id === subTaskId);
+        if (!subTask) return;
+
+        // Create new task from subtask
+        addTask({
+            title: subTask.text,
+            subTasks: [],
+            duration: 30, // Default duration
+            // could try to inherit other properties like startTime if needed
         });
-    }, []);
+        
+        // Remove subtask from original task
+        updateTask(taskId, {
+            subTasks: task.subTasks.filter(st => st.id !== subTaskId),
+        });
 
-    const addRepeatable = useCallback((data: Omit<Repeatable, 'id'>) => {
-        const newRepeatable: Repeatable = {
-            ...data,
-            id: `repeat-${Date.now()}-${Math.random()}`,
-        };
-        setState(prev => ({ ...prev, repeatables: [...prev.repeatables, newRepeatable] }));
-    }, []);
-
-    const updateRepeatable = useCallback((id: string, updates: Partial<Repeatable>) => {
-        setState(prev => ({
-            ...prev,
-            repeatables: prev.repeatables.map(r =>
-                r.id === id ? { ...r, ...updates } : r
-            ),
-        }));
-    }, []);
-
-    const deleteRepeatable = useCallback((id: string) => {
-        setState(prev => ({
-            ...prev,
-            repeatables: prev.repeatables.filter(r => r.id !== id),
-        }));
-    }, []);
+    }, [getTask, addTask, updateTask]);
 
     const value: TaskPlannerContextType = {
-        tasks: state.tasks,
+        tasks,
         getTask,
         addTask,
         updateTask,
         deleteTask,
         promoteSubTask,
-        repeatables: state.repeatables,
-        addRepeatable,
-        updateRepeatable,
-        deleteRepeatable,
     };
 
     return <TaskPlannerContext.Provider value={value}>{children}</TaskPlannerContext.Provider>;

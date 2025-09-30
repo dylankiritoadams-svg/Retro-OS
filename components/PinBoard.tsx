@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { usePinBoard } from '../PinBoardContext';
 import { useFileSystem } from '../FileSystemContext';
-import { useApp } from '../types';
+import { useApp, IconProps } from '../types';
 import type { AnyPinBoardNode, VFSFile } from '../types';
 import { APPS, DocumentIcon } from '../constants';
 import { useDocuments } from '../DocumentContext';
@@ -73,7 +73,8 @@ const PinBoardNodeComponent: React.FC<{
         case 'document':
             const file = getNode(node.vfsFileId) as VFSFile;
             const docAppDef = file ? APPS.find(a => a.id === file.appId) : null;
-            const docIcon = docAppDef?.icon ? React.cloneElement(docAppDef.icon, { className: "h-8 w-8" }) : <DocumentIcon className="h-8 w-8" />;
+            // FIX: Cast icon to a type that accepts className to satisfy React.cloneElement
+            const docIcon = docAppDef?.icon ? React.cloneElement(docAppDef.icon as React.ReactElement<IconProps>, { className: "h-8 w-8" }) : <DocumentIcon className="h-8 w-8" />;
             content = file ? (
                 <div className="flex flex-col items-center justify-center text-center">
                     {docIcon}
@@ -83,7 +84,8 @@ const PinBoardNodeComponent: React.FC<{
             break;
         case 'app':
             const appDef = APPS.find(a => a.id === node.appId);
-            const appIcon = appDef?.icon ? React.cloneElement(appDef.icon, { className: "h-10 w-10" }) : <DocumentIcon className="h-10 w-10" />;
+            // FIX: Cast icon to a type that accepts className to satisfy React.cloneElement
+            const appIcon = appDef?.icon ? React.cloneElement(appDef.icon as React.ReactElement<IconProps>, { className: "h-10 w-10" }) : <DocumentIcon className="h-10 w-10" />;
             content = appDef ? (
                  <div className="flex flex-col items-center justify-center text-center">
                     {appIcon}
@@ -144,7 +146,8 @@ const AppPickerModal: React.FC<{ onSelect: (appId: string) => void, onClose: () 
             <div className="bg-gray-800 p-2 overflow-y-auto">
                 {APPS.filter(app => !new Set(['finder', 'settings', 'stickynote-window']).has(app.id)).map(app => (
                     <button key={app.id} onClick={() => onSelect(app.id)} className="w-full text-left p-2 hover:bg-gray-600 flex items-center text-white">
-                        {React.cloneElement(app.icon, { className: "h-6 w-6 mr-2 flex-shrink-0" })}
+                        {/* FIX: Cast icon to a type that accepts className to satisfy React.cloneElement */}
+                        {React.cloneElement(app.icon as React.ReactElement<IconProps>, { className: "h-6 w-6 mr-2 flex-shrink-0" })}
                         <span>{app.name}</span>
                     </button>
                 ))}

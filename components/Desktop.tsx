@@ -1,9 +1,7 @@
-
-
 import React from 'react';
 import { useFileSystem } from '../FileSystemContext';
 import { useApp } from '../types';
-import type { VFSFile, VFSFolder, VFSNode } from '../types';
+import type { VFSFile, VFSFolder, VFSNode, IconProps } from '../types';
 import { APPS, FolderIcon } from '../constants';
 
 const DesktopItem: React.FC<{ node: VFSNode }> = ({ node }) => {
@@ -36,7 +34,8 @@ const DesktopItem: React.FC<{ node: VFSNode }> = ({ node }) => {
     } else {
         const file = node as VFSFile;
         const appDef = APPS.find(a => a.id === file.appId);
-        icon = appDef?.icon ? React.cloneElement(appDef.icon, { className: "h-10 w-10" }) : '📄';
+        // FIX: Cast icon to a type that accepts className to satisfy React.cloneElement
+        icon = appDef?.icon ? React.cloneElement(appDef.icon as React.ReactElement<IconProps>, { className: "h-10 w-10" }) : '📄';
     }
 
     return (

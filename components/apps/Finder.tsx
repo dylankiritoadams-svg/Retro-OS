@@ -1,9 +1,7 @@
-
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useFileSystem } from '../../FileSystemContext';
 import { useApp } from '../../types';
-import { VFSNode, VFSFolder, VFSFile } from '../../types';
+import { VFSNode, VFSFolder, VFSFile, IconProps } from '../../types';
 import { APPS } from '../../constants';
 
 interface AppProps {
@@ -18,7 +16,8 @@ const DocumentIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-
 const FileIcon: React.FC<{ node: VFSFile }> = ({ node }) => {
     const appDef = APPS.find(a => a.id === node.appId);
     if (appDef && node.fileType === 'app') {
-        return React.cloneElement(appDef.icon, { className: "h-12 w-12" });
+        // FIX: Cast icon to a type that accepts className to satisfy React.cloneElement
+        return React.cloneElement(appDef.icon as React.ReactElement<IconProps>, { className: "h-12 w-12" });
     }
     return <DocumentIcon />;
 };
